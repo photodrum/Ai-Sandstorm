@@ -51,5 +51,15 @@
   в бою — вероятно, это «доклад от товарища» или неиспользуемый делегат. Ищем другой
   источник «глаз»: AIPerception (OnTargetPerceptionUpdated) или опрос Get Focus Actor.
 
+- **«Глаза» бота найдены ✅**: INSAISoldierController → Get AIPerception Component →
+  Bind On Target Perception Info Updated → Break ActorPerceptionUpdateInfo (Target, Stimulus) →
+  Break AIStimulus (Age, Strength, Stimulus Location, Receiver Location, Tag, Successfully Sensed).
+  В бою событие срабатывает много раз, sensed=true/false корректно.
+- Проблема: событие не передаёт наблюдателя; боты воспринимают и своих.
+  Решение: компонент `AC_OgrAiBrain` (ActorComponent) на каждом боте — знает своего
+  владельца, фильтрует по команде, докладывает мутатору и хранит пер-бот данные
+  (роль, кулдаун) — заодно решает проблему «одно поведение на всех ботов».
+- Received Enemy Seen — не используем (не срабатывает), удалить при уборке.
+
 Следующее: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
