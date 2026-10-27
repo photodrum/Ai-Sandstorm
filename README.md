@@ -15,6 +15,8 @@ v0.1 — конвейер встраивания работает: мутато�
 Подробности архитектуры и результаты исследования SDK: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Журнал разработки: [docs/DEVLOG.md](docs/DEVLOG.md).
 **Контекст для продолжения в новом чате:** [docs/CONTEXT.md](docs/CONTEXT.md).
+Сравнение с ванилью и Improved AI: [docs/COMPARISON.md](docs/COMPARISON.md).
+Параметры нативного ИИ: [docs/BOT_SKILL_CONFIG.md](docs/BOT_SKILL_CONFIG.md).
 
 ## Структура репозитория
 
