@@ -84,8 +84,11 @@
 1. ✅ Разведка API `INSAISoldierController` и `INSAISquad` — справочник в `ARCHITECTURE.md`.
 1a. ✅ Тест управления: BB_Test заставляет ботов присесть и идти 10 м вперёд (работает).
 1b. ✅ Update: Done только при `Get Move Status == Idle`.
-1c. **[СЛЕДУЮЩИЙ ШАГ]** В Move to Location (BB_Test.OnStart) включить Project Destination to Navigation.
-   Затем в мутаторе проверить `Cast To INSAISoldierController` (раньше искали только
+1c. ✅ Project Destination to Navigation включён.
+1d. **[СЛЕДУЮЩИЙ ШАГ]** Профиль восприятия: конвейер проверен на StandingChanceDistance;
+   добавить остальные 10 Config Variables (значения — пресет «Реализм» в COMPARISON.md)
+   и цепочку Set-нод после Branch(bPerceptionProfile).
+1e. Затем в мутаторе проверить `Cast To INSAISoldierController` (раньше искали только
    BotController/INSBot) → Bind Received Enemy Seen → сигнатура события → память LKP. Тип `Get Firearm`.
 2. Уборка: удалить ветку On Player Spawned и шумные маячки; способ логирования для shipping-сервера.
 3. Выяснить: читается ли Valid Behaviors при спавне (4 из ~9 ботов опрашивали BB_Test);

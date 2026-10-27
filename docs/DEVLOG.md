@@ -28,4 +28,14 @@
   (стена впереди) → включить Project Destination to Navigation.
 - Подтверждено: при виде игрока бот встаёт и стреляет (ванильный бой вытесняет наше Idle (low)).
 
-Следующее: разведка каста `INSAISoldierController` из мутатора (подписка на Received Enemy Seen → LKP).
+- Исследован DefaultBotSkillConfig → `docs/BOT_SKILL_CONFIG.md`; сравнение → `docs/COMPARISON.md`.
+- **Профиль восприятия, конвейер ✅**: Config Variables `bPerceptionProfile` (bool, true) и
+  `StandingChanceDistance` (float, 35) → Begin Play → Branch → Set Chance at Distance Standing →
+  Print(Get Chance at Distance Standing) = 35 в игре.
+- Наблюдение: часть ботов (_4, _5, _8, _15) всё равно перезапускает BB_Test каждый кадр
+  (сотни OnStart) — вероятно Move to Location сразу фейлится (бот на позиции/в спавне).
+  Урок для архитектуры: нужен **кулдаун входа на бота** после неудачи (пер-бот данные
+  в мутаторе, т.к. поведение одно на всех) и проверка Return Value у Move to Location.
+
+Следующее: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
+затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
