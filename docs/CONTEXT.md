@@ -91,7 +91,11 @@
    Мелочь: в последнем Print String потеряна буква «O» ("grAi: perception profile applied").
 1g. ✅ Восприятие: Bind On Target Perception Info Updated работает (см. DEVLOG).
 1h. ✅ `AC_OgrAiBrain` на каждом боте, восприятие с фильтром «только враги» работает.
-1i. **[СЛЕДУЮЩИЙ ШАГ]** Общая память: в мутаторе функция ReportEnemy(Enemy, Location, bSensed)
+1i. ✅ Общая память (LKP) работает.
+1j. **[СЛЕДУЮЩИЙ ШАГ]** BB_Search: Can Enter — Me → Get Component by Class(AC_OgrAiBrain) →
+   Director → LKP_Time; время с потери 3–30 с и мозг.SearchedLKPTime != LKP_Time; Priority Alert.
+   On Start: Crouch + Move to Location(LKP), отметить SearchedLKPTime. Update: Idle → Done.
+   (История) Общая память: в мутаторе функция ReportEnemy(Enemy, Location, bSensed)
    + переменные LKP_Enemy/LKP_Location/LKP_Time; в мозге переменная Director (тип OgrAi),
    мутатор записывает её после Add Component. Затем поведение «Прочесать».
 1f. (отложено) Полевой тест профиля (стойки на разных дистанциях), затем уборка

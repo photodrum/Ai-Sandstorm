@@ -69,7 +69,14 @@
 - Удалены старые подписки из мутатора (Received Enemy Seen, Perception Info).
 - Для тестов в редакторе: Saved/Config/Windows/Game.ini → [/Script/Insurgency.INSCoopMode] FriendlyBotQuota=0.
 
-Следующее: общая память команды в мутаторе (ReportEnemy → LKP), ссылка мозга на мутатор (Director).
+- **Общая память ✅**: мутатор — функция ReportEnemy(Enemy: Pawn, Location: Vector, bSensed)
+  → SET LKP_Enemy / LKP_Location / LKP_Time (Get Game Time in Seconds); при bSensed=false лог
+  `LOST target, LKP=...`. Мозг: переменная Director (OgrAi, Instance Editable), после фильтра
+  Enemy → Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed). Мутатор после
+  Add Component → SET Director = Self. Проверено в игре.
+
+Следующее: поведение BB_Search — бот идёт проверять LKP (окно 3–30 с после потери),
+один раз на каждую новую LKP (отметка в мозге).
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
