@@ -90,8 +90,10 @@
    в DefaultBotSkillConfig, проверено в игре. Описание — `docs/CONFIG.md`.
    Мелочь: в последнем Print String потеряна буква «O» ("grAi: perception profile applied").
 1g. ✅ Восприятие: Bind On Target Perception Info Updated работает (см. DEVLOG).
-1h. **[СЛЕДУЮЩИЙ ШАГ]** Компонент `AC_OgrAiBrain` на каждом боте (Add Component by Class из
-   ScanBots), подписка на восприятие внутри него, фильтр «цель — враг», доклад мутатору → LKP.
+1h. ✅ `AC_OgrAiBrain` на каждом боте, восприятие с фильтром «только враги» работает.
+1i. **[СЛЕДУЮЩИЙ ШАГ]** Общая память: в мутаторе функция ReportEnemy(Enemy, Location, bSensed)
+   + переменные LKP_Enemy/LKP_Location/LKP_Time; в мозге переменная Director (тип OgrAi),
+   мутатор записывает её после Add Component. Затем поведение «Прочесать».
 1f. (отложено) Полевой тест профиля (стойки на разных дистанциях), затем уборка
    отладочных веток (On Player Spawned, CAST OK) и переход к SquadDirector.
 1e. Затем в мутаторе проверить `Cast To INSAISoldierController` (раньше искали только

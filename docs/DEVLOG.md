@@ -61,5 +61,15 @@
   (роль, кулдаун) — заодно решает проблему «одно поведение на всех ботов».
 - Received Enemy Seen — не используем (не срабатывает), удалить при уборке.
 
-Следующее: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
+- **AC_OgrAiBrain ✅** (`Content/AI/AC_OgrAiBrain`, ActorComponent, без тика). Мутатор в ScanBots:
+  Cast INSAISoldierController → Get Component by Class(AC_OgrAiBrain) → Is Valid / Is Not Valid →
+  Add Component by Class (Target = контроллер). Мозг: Begin Play → Get Owner → Cast → MyController →
+  Bind On Target Perception Info Updated → Get Team Relationship(Target, MyController.Get Team Id) == Enemy
+  → лог `ENEMY <цель> sensed=<bool> by <бот>`. В бою событие приходит очень часто.
+- Удалены старые подписки из мутатора (Received Enemy Seen, Perception Info).
+- Для тестов в редакторе: Saved/Config/Windows/Game.ini → [/Script/Insurgency.INSCoopMode] FriendlyBotQuota=0.
+
+Следующее: общая память команды в мутаторе (ReportEnemy → LKP), ссылка мозга на мутатор (Director).
+
+Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
