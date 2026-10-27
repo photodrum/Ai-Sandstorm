@@ -44,5 +44,12 @@
   AlreadyAtGoal → Idle → Done. В логе также `LogCharacterMovement: ... is stuck` (два бота упёрлись
   друг в друга). Настоящие поведения: проверять Return Value Move to Location + кулдаун на бота.
 
+- Профиль восприятия: 12 параметров (+DistanceRangeDist), цели пользователя: лёжа ~20 м,
+  пригнувшись ~60 м, стоя ~200 м. Калибровка отложена — на сервере через Game.ini.
+- Cast To INSAISoldierController из мутатора работает. Bind Event to Received Enemy Seen
+  выполняется (BOUND в логе), но событие (пин Seen Enemy: Pawn) ни разу не сработало
+  в бою — вероятно, это «доклад от товарища» или неиспользуемый делегат. Ищем другой
+  источник «глаз»: AIPerception (OnTargetPerceptionUpdated) или опрос Get Focus Actor.
+
 Следующее: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
