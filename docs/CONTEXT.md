@@ -65,14 +65,22 @@
 - У бота есть: Move to Location/Actor (+ Safe-версии Sandstorm), Set Focus/Focal Point, Set Desired Stance,
   Is Target Facing Me, Get Firearm, Get Squad → INSAISquad (Get Squad Members, Get Target Objective),
   диспетчер Received Enemy Seen. Прямой команды «стрелять» и геттера врага нет.
-- `Can Enter` у `BB_Test` — const-функция: в ней нельзя биндить события; подписки делать в On Start/EventGraph.
+- `Can Enter`, `On Start`, `Update` — const-функции с `Me`. Вывод: **один экземпляр поведения
+  на всех ботов** → не хранить данные бота в переменных поведения; пер-бот состояние —
+  в SquadDirector (Map контроллер → данные). On Start/Update возвращают Running/Done.
+- Приёмы в редакторе: от пина объекта искать с включённым Context Sensitive; функции мира
+  (Print String и т.п.) — выключить Context Sensitive и подать Me в World Context Object. Поиск по
+  полной фразе иногда пуст (Get Controlled Pawn находится по слову `Pawn`) — искать по одному слову.
+  `Get Player Pawn` в поведении недоступна; одноимённые ноды из чужих классов (Pawn Actions
+  Component, User Widget) не брать.
 
 ## Что осталось (roadmap)
 
 1. ✅ Разведка API `INSAISoldierController` и `INSAISquad` — справочник в `ARCHITECTURE.md`.
-1a. **[СЛЕДУЮЩИЙ ШАГ]** В EventGraph `BB_Test` снять пины On Start / Update / On Finish;
-   выяснить сигнатуру `Received Enemy Seen` и тип `Get Firearm`. Затем — тест управления:
-   одному боту приказать Move to Location + Set Desired Stance (доказать, что можем двигать бота).
+1a. ✅ Тест управления: BB_Test заставляет ботов присесть и идти 10 м вперёд (работает).
+1b. **[СЛЕДУЮЩИЙ ШАГ]** Исправить Update: Done только при `Get Move Status == Idle`
+   (сейчас On Start дёргается каждый кадр). Осталось выяснить сигнатуру
+   `Received Enemy Seen` (подписка — из EventGraph мутатора/поведения) и тип `Get Firearm`.
 2. Уборка: удалить ветку On Player Spawned и шумные маячки; способ логирования для shipping-сервера.
 3. Выяснить: читается ли Valid Behaviors при спавне (4 из ~9 ботов опрашивали BB_Test);
    если да — вносить изменение раньше (Initialize Mutator) и править Hardcore/другие конфиги.

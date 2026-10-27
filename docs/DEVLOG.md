@@ -15,4 +15,11 @@
   Received Enemy Seen / Enemy Killed, Get Firearm, INSAISquad (члены, цель-объектив). Справочник
   в ARCHITECTURE.md.
 
-Следующее: пины событий поведения (On Start/Update/On Finish), затем тест управления движением бота.
+- Сняты сигнатуры: On Start / Update — const-функции `(Me) → EBotBehaviorReturnResult {Running, Done}`,
+  On Finish — событие `(Me)`. Стойки: Stand, Crouch, Prone, Vehicle, Swim, Climb.
+- **Первое управление ботом ✅**: BB_Test (Can Enter = true, Idle low) → On Start: Crouch +
+  Move to Location (10 м вперёд) → Update: Moving ? Running : Done. В игре боты ходили
+  присев, при обнаружении игрока управление перехватывал ванильный бой.
+- Проблема: On Start вызывается почти каждый кадр (Update сразу отдаёт Done — статус ещё не Moving).
+
+Следующее: Update завершает поведение только при статусе Idle; затем словарь пер-бот данных в мутаторе.
