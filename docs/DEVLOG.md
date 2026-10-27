@@ -8,4 +8,7 @@
 - Тест на Farmhouse Checkpoint Security: `BB_Test added to DefaultBotSkillConfig`,
   боты (`INSAISoldierController_*`) вызывают `BB_Test.CanEnter`. ✅
 
+- Мод выложен в GitLab (`denisle/sandstorm-ai`), ассеты через Git LFS. Добавлен `docs/CONTEXT.md` для
+  продолжения работы в новом чате.
+
 Следующее: разведка API `INSAISoldierController` (Move, Focus, Target, Stance, Squad).
