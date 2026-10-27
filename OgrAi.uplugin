@@ -1,0 +1,17 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "OgrAi",
+	"Description": "Tactical squad AI for Checkpoint",
+	"Category": "Other",
+	"CreatedBy": "OGR-Rus",
+	"CreatedByURL": "photodrum.com",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false
+}
