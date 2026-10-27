@@ -129,6 +129,8 @@ Content/
 ## Дальше (roadmap)
 
 1. BB_Search (см. выше).
+1a. Граната / РПГ по LKP при потере контакта — задача
+    https://git.ogrpfsense.ru/denisle/sandstorm-ai/-/work_items/1 (сначала разведка: Grenade/Throw/Fire/Launcher).
 2. **Пробная упаковка и тест на сервере** (рано!): загрузка мутатора в shipping-сборке,
    чтение Game.ini, `BlueprintNativizationMethod=Disabled`; Print String в shipping вырезается —
    нужен другой способ логирования (Config-флаг bDebugLog).
