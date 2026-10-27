@@ -78,9 +78,10 @@
 
 1. ✅ Разведка API `INSAISoldierController` и `INSAISquad` — справочник в `ARCHITECTURE.md`.
 1a. ✅ Тест управления: BB_Test заставляет ботов присесть и идти 10 м вперёд (работает).
-1b. **[СЛЕДУЮЩИЙ ШАГ]** Исправить Update: Done только при `Get Move Status == Idle`
-   (сейчас On Start дёргается каждый кадр). Осталось выяснить сигнатуру
-   `Received Enemy Seen` (подписка — из EventGraph мутатора/поведения) и тип `Get Firearm`.
+1b. ✅ Update: Done только при `Get Move Status == Idle`.
+1c. **[СЛЕДУЮЩИЙ ШАГ]** В Move to Location (BB_Test.OnStart) включить Project Destination to Navigation.
+   Затем в мутаторе проверить `Cast To INSAISoldierController` (раньше искали только
+   BotController/INSBot) → Bind Received Enemy Seen → сигнатура события → память LKP. Тип `Get Firearm`.
 2. Уборка: удалить ветку On Player Spawned и шумные маячки; способ логирования для shipping-сервера.
 3. Выяснить: читается ли Valid Behaviors при спавне (4 из ~9 ботов опрашивали BB_Test);
    если да — вносить изменение раньше (Initialize Mutator) и править Hardcore/другие конфиги.
