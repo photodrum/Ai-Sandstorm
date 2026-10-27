@@ -57,7 +57,8 @@
 
 - Свои поведения: наследники `BotBehavior_Blueprint`; overrides: Can Enter (const, `Me: INSAISoldierController`),
   On Start, Update, On Finish, Reset, On Move Completed, On Heard Enemy Sound, On Other Soldier Killed.
-- `Can Enter` вызывается очень часто → только дешёвые проверки (флаг роли от SquadDirector).
+- `Can Enter` вызывается при каждом нативном выборе поведения (~2 раза/с на свободного бота)
+  → только дешёвые проверки (флаг роли / кулдаун от SquadDirector).
 - Приоритеты и их распределение — в `ARCHITECTURE.md`. Utility никогда не используем.
 - `On Player Spawned` мутатора не срабатывает для ботов.
 - Модификация контейнеров: `Get Tmp → Add → Set Valid Behaviors(Get Tmp)`, не через выход SET-ноды.
