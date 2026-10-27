@@ -62,11 +62,17 @@
 - `On Player Spawned` мутатора не срабатывает для ботов.
 - Модификация контейнеров: `Get Tmp → Add → Set Valid Behaviors(Get Tmp)`, не через выход SET-ноды.
 - В не-акторах (поведениях) у Print String нужен World Context Object = Me.
+- У бота есть: Move to Location/Actor (+ Safe-версии Sandstorm), Set Focus/Focal Point, Set Desired Stance,
+  Is Target Facing Me, Get Firearm, Get Squad → INSAISquad (Get Squad Members, Get Target Objective),
+  диспетчер Received Enemy Seen. Прямой команды «стрелять» и геттера врага нет.
+- `Can Enter` у `BB_Test` — const-функция: в ней нельзя биндить события; подписки делать в On Start/EventGraph.
 
 ## Что осталось (roadmap)
 
-1. **[СЛЕДУЮЩИЙ ШАГ]** Разведка API `INSAISoldierController` от пина `Me` в `BB_Test.CanEnter`:
-   поиск `Move`, `Focus`, `Target`, `Stance`/`Crouch`, `Squad` → скриншоты списков функций.
+1. ✅ Разведка API `INSAISoldierController` и `INSAISquad` — справочник в `ARCHITECTURE.md`.
+1a. **[СЛЕДУЮЩИЙ ШАГ]** В EventGraph `BB_Test` снять пины On Start / Update / On Finish;
+   выяснить сигнатуру `Received Enemy Seen` и тип `Get Firearm`. Затем — тест управления:
+   одному боту приказать Move to Location + Set Desired Stance (доказать, что можем двигать бота).
 2. Уборка: удалить ветку On Player Spawned и шумные маячки; способ логирования для shipping-сервера.
 3. Выяснить: читается ли Valid Behaviors при спавне (4 из ~9 ботов опрашивали BB_Test);
    если да — вносить изменение раньше (Initialize Mutator) и править Hardcore/другие конфиги.

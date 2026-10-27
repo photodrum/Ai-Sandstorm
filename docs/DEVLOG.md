@@ -11,4 +11,8 @@
 - Мод выложен в GitLab (`denisle/sandstorm-ai`), ассеты через Git LFS. Добавлен `docs/CONTEXT.md` для
   продолжения работы в новом чате.
 
-Следующее: разведка API `INSAISoldierController` (Move, Focus, Target, Stance, Squad).
+- Разведка API бота и отряда: движение (вкл. Move…Safe), фокус, стойка, восприятие, события
+  Received Enemy Seen / Enemy Killed, Get Firearm, INSAISquad (члены, цель-объектив). Справочник
+  в ARCHITECTURE.md.
+
+Следующее: пины событий поведения (On Start/Update/On Finish), затем тест управления движением бота.

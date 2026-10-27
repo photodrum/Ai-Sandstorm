@@ -95,4 +95,47 @@ ScanBots (каждые 2 с)
 - Читается ли `Valid Behaviors` ботом один раз при спавне или каждый раз?
   (В тесте `Can Enter` опрашивали 4 бота из ~9.)
 - Как часто вызывается `Can Enter`, прерывает ли высокий приоритет активное поведение, tie-break при равном.
-- Какие функции доступны у `INSAISoldierController` (движение, фокус, стойка, отряд).
+- Что передают события `Received Enemy Seen` / `Enemy Killed` (сигнатура делегатов).
+- Как приказать боту стрелять: прямой ноды нет — стрельба у нативных поведений
+  (`BotFirearmBehavior`, `AttackRanged`, `SuppressTarget`). Проверить, стреляет ли бот сам, если
+  наше поведение держит его на позиции с `Set Focus` на цели.
+- Что возвращает `Get Firearm` (тип, доступные свойства для профиля оружия).
+- Доступ к `CoverSystem` / `AICoverActor` из Blueprint.
+
+## Справочник API (разведка SDK, v0.1)
+
+### INSAISoldierController (пин `Me` в поведении)
+
+| Категория | Ноды |
+|---|---|
+| Навигация (UE) | Move to Location, Move to Actor, Simple Move to *, Stop Movement, Get Move Status, Get Immediate Move Destination, Set Move Block Detection |
+| Навигация (Sandstorm) | **Move to Location Safe**, **Move to Actor Safe**, **Move to Override**, Toggle Movement; диспетчер MoveCompleted |
+| Взгляд | Set Focus, Set Focal Point, Clear Focus, Get Focus Actor |
+| Стойка | Set Desired Stance |
+| Восприятие | Get Chance to Spot Target, Is Target Facing Me, Get View Target |
+| События | диспетчеры **Received Enemy Seen**, **Enemy Killed Delegate** (Bind/Unbind) |
+| Оружие | Get Firearm; интерфейсы Fire Support Owner (Get Fire Support Actor), Point Shooting Upgrade (Should Enter Point Shoot Mode) |
+| Отряд | Get Squad → `INSAISquad`, Is Squad Leader, Get Squad Leader Cover |
+
+Не найдено: геттер текущего врага, нода «стрелять», геттер укрытия бота.
+
+### INSAISquad
+
+Count Squad Members, Get Squad Members, Is Squad Member Playing Dialogue,
+Get Target Objective, Get Target Objective Entrance, Get Contested Objective.
+
+### Классы, видимые в кастах (существуют в игре)
+
+- Память/события: `BotKnownTargetMemory`, `AISeenEnemyEvent`, `AIKilledEnemyEvent`.
+- Укрытия: `CoverSystem`, `CoverComponent`, `CoverGenerator`, `CoverActor`, `AICoverActor`,
+  `EnvQueryGenerator_CoverLocations`, `EQS_GetAllOccupiedCover`, `EQS_GetCoverThreatLocation`.
+- EQS-контексты отряда: `EnvQueryContext_SquadCenter / SquadMembers / SquadMembersDest / SquadPath / SquadDestination`.
+- Поведения: `BotFirearmBehavior`, `BotBehavior_TacticalMoveToObjective`, `_ClearObjective`, `_FlushTarget`,
+  `_SuppressTarget`, `_Example_ShootAtTarget`, `_Example_Wander`; `BotObjectiveHandler`, `AmbushObjective`.
+
+### Выводы для архитектуры
+
+- Наши поведения отвечают за **позицию, взгляд и стойку**; стрельбу отдаём нативным поведениям
+  (выходим из своего поведения, когда пора стрелять, или проверяем, стреляет ли бот сам).
+- «Последняя известная позиция» строится на событии Received Enemy Seen → SquadDirector.
+- Укрытия и EQS уже есть в игре — используем нативные генераторы/контексты, а не свои.
