@@ -17,6 +17,7 @@ v0.1 — конвейер встраивания работает: мутато�
 **Контекст для продолжения в новом чате:** [docs/CONTEXT.md](docs/CONTEXT.md).
 Сравнение с ванилью и Improved AI: [docs/COMPARISON.md](docs/COMPARISON.md).
 Параметры нативного ИИ: [docs/BOT_SKILL_CONFIG.md](docs/BOT_SKILL_CONFIG.md).
+**Настройки мода (Game.ini):** [docs/CONFIG.md](docs/CONFIG.md).
 
 ## Структура репозитория
 

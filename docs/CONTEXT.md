@@ -86,9 +86,11 @@
 1a. ✅ Тест управления: BB_Test заставляет ботов присесть и идти 10 м вперёд (работает).
 1b. ✅ Update: Done только при `Get Move Status == Idle`.
 1c. ✅ Project Destination to Navigation включён.
-1d. **[СЛЕДУЮЩИЙ ШАГ]** Профиль восприятия: конвейер проверен на StandingChanceDistance;
-   добавить остальные 10 Config Variables (значения — пресет «Реализм» в COMPARISON.md)
-   и цепочку Set-нод после Branch(bPerceptionProfile).
+1d. ✅ Профиль восприятия: 11 Config Variables → Begin Play → Branch(bPerceptionProfile) → 10 Set-нод
+   в DefaultBotSkillConfig, проверено в игре. Описание — `docs/CONFIG.md`.
+   Мелочь: в последнем Print String потеряна буква «O» ("grAi: perception profile applied").
+1f. **[СЛЕДУЮЩИЙ ШАГ]** Полевой тест профиля (стойки на разных дистанциях), затем уборка
+   отладочных веток (On Player Spawned, CAST OK) и переход к SquadDirector.
 1e. Затем в мутаторе проверить `Cast To INSAISoldierController` (раньше искали только
    BotController/INSBot) → Bind Received Enemy Seen → сигнатура события → память LKP. Тип `Get Firearm`.
 2. Уборка: удалить ветку On Player Spawned и шумные маячки; способ логирования для shipping-сервера.
