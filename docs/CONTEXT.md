@@ -118,6 +118,9 @@ Content/
 - Живой ли солдат: `INSSoldier.Get Health > 0` (Is Alive нет; есть Get Is Dying, Get Incapacitated,
   Get In Ragdoll, Get Time Of Death). Трупы остаются врагами для AIPerception — фильтровать обязательно.
 - Пешка контроллера: от Me (Context Sensitive вкл.) раздел **Pawn** → Get Controlled Pawn.
+- Наклон (Lean): у INSSoldier только чтение — раздел Leaning: Get Leaning View X/YOffset,
+  Get Max Leaning View XOffset, Is Leaning. У INSAISoldierController ничего. Слово Peek — ничего.
+  Значит, заставить бота наклониться напрямую нельзя (нет Set-функции).
 - LogAI Error `just switched but is finishing on the initial Update` — поведение вернуло Done на первом
   Update; отсекать такие входы в Can Enter.
 - Нативный BotFirearmBehavior держит бота ~10 с после потери цели, наши Alert-поведения стартуют после.
@@ -165,7 +168,8 @@ Content/
 ## Дальше (roadmap)
 
 1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов. → Сглаживание LOST (см. СЛЕДУЮЩИЙ ШАГ).
-1a. Граната / РПГ по LKP при потере контакта — задача
+1a. (сразу после сглаживания LOST) Граната / РПГ по LKP перед прочёсыванием —
+    свой токен (один бросок на LKP), проверка «нет своих в ~8 м от точки»; — задача
     https://git.ogrpfsense.ru/denisle/sandstorm-ai/-/work_items/1 (сначала разведка: Grenade/Throw/Fire/Launcher).
 2. **Пробная упаковка и тест на сервере** (рано!): загрузка мутатора в shipping-сборке,
    чтение Game.ini, `BlueprintNativizationMethod=Disabled`; Print String в shipping вырезается —
@@ -178,6 +182,10 @@ Content/
 6. Карта опасности и мораль (On Player Killed Any Damage / On Other Soldier Killed).
 7. Профили оружия (Get Firearm, Max Distance из BotSkillConfig) → роли и дистанции.
 8. Checkpoint: эшелоны обороны, засады на маршруте, скоординированная контратака.
+   Засада (BB_Ambush, идея пользователя): точка у края укрытия, Crouch/Prone, Set Focal Point на
+   ожидаемое направление, стрельба — нативная. Наклон из BP недоступен → вместо него
+   позиционирование «одним плечом» у края укрытия. Ещё проверить: параметры наклона
+   в BotSkillConfig (делает ли нативный ИИ lean сам), слова Cover / Corner / Tilt в SDK.
 9. Радиопереговоры (ванильные реплики → мод остаётся server-only).
 10. Разметка карт (свои маркеры), изучить подуровень `Farmhouse_AI`.
 11. Совместимость: только враги-боты, Mutual Exclusion Groups, переключатели подсистем,
