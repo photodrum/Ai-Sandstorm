@@ -75,8 +75,27 @@
   Enemy → Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed). Мутатор после
   Add Component → SET Director = Self. Проверено в игре.
 
-Следующее: поведение BB_Search — бот идёт проверять LKP (окно 3–30 с после потери),
-один раз на каждую новую LKP (отметка в мозге).
+## 2026-10-28 — v0.3: прочёсывание LKP
+
+- **BB_Search ✅** (`Content/AI/BB_Search`, Behavior Name `OgrAi_Search`, Priority Alert).
+  - Can Enter: Me → Get Component by Class(AC_OgrAiBrain) → Is Valid → Director → Is Valid →
+    AND(LKP_Time > 0; InRange(Director.GetLKPAge, 3, 30); Brain.SearchedLKPTime != LKP_Time).
+  - On Start: Set Desired Stance(Crouch) → Move to Location(LKP_Location, Acceptance 150,
+    Project Destination to Navigation) → SET Brain.SearchedLKPTime = LKP_Time → Print `SEARCH -> LKP` → Running.
+  - Update: Get Move Status == Idle ? Done : Running.
+  - Мозг: новая переменная `SearchedLKPTime` (Float).
+- `Get Game Time in Seconds` в поведении недоступна даже без Context Sensitive (у поведения нет мира).
+  Решение: Pure-функция мутатора `GetLKPAge() → Age` = GameTime − LKP_Time, поведение зовёт Director.GetLKPAge.
+- Set переменной другого объекта (мозга) из const On Start компилируется и работает.
+- Мутатор: в Valid Behaviors теперь добавляется BB_Search вместо BB_Test.
+- Тест на Farmhouse: после `LOST target` через несколько секунд `SEARCH -> LKP` у 4 ботов; боты пригибаются,
+  крадутся к точке последнего контакта, там выпрямляются и уходят в ванильное патрулирование;
+  «стрельбы сквозь стены» нет. При новой потере контакта (новая LKP) боты идут снова — отметка
+  SearchedLKPTime работает.
+- Наблюдения: идут **все** боты, включая не видевших игрока (общая память); `LOST` приходит пачкой
+  (каждый бот теряет игрока отдельно) и каждый раз обновляет LKP_Time → возможен повторный поход на то же место.
+
+Следующее: ограничить прочёсывание (токены поиска, 1–2 бота) и сгладить пачки LOST в ReportEnemy.
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).

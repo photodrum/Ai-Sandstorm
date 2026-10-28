@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-10-27 (конец дня), версия v0.2
+**Последнее обновление:** 2026-10-28, версия v0.3 (BB_Search работает)
 
 ## Цель
 
@@ -50,18 +50,21 @@ Content/
   ModData_OgrAi              регистрация: Primary Asset Directories → Mutator / Mutators
   Mutators/OgrAi             мутатор = «директор»
   AI/AC_OgrAiBrain           компонент-«мозг» на каждом боте
-  GoapTest/BB_Test           тестовое поведение (присесть и идти 10 м вперёд)
+  AI/BB_Search               поведение «прочесать LKP» (Alert)
+  GoapTest/BB_Test           старое тестовое поведение (в Valid Behaviors больше не добавляется, к удалению)
 ```
 
 **Мутатор OgrAi:**
 - Begin Play → Print `MUTATOR STARTED` → Set Timer by Event (2 с, looping → ScanBots) →
-  `DefaultSkillConfig.ValidBehaviors += BB_Test` → Branch(bPerceptionProfile) → 11 Set-нод профиля
+  `DefaultSkillConfig.ValidBehaviors += BB_Search` (Print `BB_Search added to DefaultBotSkillConfig`) → Branch(bPerceptionProfile) → 11 Set-нод профиля
   восприятия → Print `perception profile applied (11 params)`.
 - ScanBots: Get All Actors Of Class(AIController) → For Each → Cast INSAISoldierController →
   Get Component by Class(AC_OgrAiBrain) → Is Valid? → если нет: Add AC_OgrAiBrain (Target = контроллер)
   → SET Director = Self → далее старая ветка Cast INSSoldier → Custom Bot Skill Config (обычно None).
 - Функция ReportEnemy(Enemy: Pawn, Location: Vector, bSensed: Bool) → SET LKP_Enemy, LKP_Location,
   LKP_Time (= Get Game Time in Seconds) → если !bSensed: Print `LOST target, LKP=...`.
+- Функция GetLKPAge() (Pure) → Age = Get Game Time in Seconds − LKP_Time.
+  (Поведения не могут сами получить время игры — спрашивают у Director.)
 - Переменные: TmpBehaviors, DefaultSkillConfig (=DefaultBotSkillConfig), 12 Config Variables профиля
   (см. `docs/CONFIG.md`), LKP_Enemy, LKP_Location, LKP_Time.
 - Остатки отладки к удалению: ветка Event On Player Spawned (SPAWNED / CAST OK).
@@ -72,7 +75,15 @@ Content/
 - Событие → Break ActorPerceptionUpdateInfo → Cast INSSoldier(Target) →
   Get Team Relationship(Actor, MyController.Get Team Id) == Enemy → Print (только лог) `ENEMY ... by ...` →
   Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed).
-- Переменные: MyController, Director (OgrAi, Instance Editable).
+- Переменные: MyController, Director (OgrAi, Instance Editable), SearchedLKPTime (Float — LKP_Time,
+  которую этот бот уже взял в прочёсывание).
+
+**Поведение BB_Search** (Behavior Name `OgrAi_Search`, Priority Alert):
+- Can Enter: Me → Get Component by Class(AC_OgrAiBrain) → Is Valid → .Director → Is Valid →
+  AND(LKP_Time > 0; InRange(Director.GetLKPAge, 3, 30); Brain.SearchedLKPTime != LKP_Time) → Return.
+- On Start: Set Desired Stance(Crouch) → Move to Location(Director.LKP_Location, 150, Project to Nav) →
+  SET Brain.SearchedLKPTime = Director.LKP_Time → Print `SEARCH -> LKP` (World Context = Me) → Running.
+- Update: Get Move Status == Idle → Done, иначе Running.
 
 ## Ключевые факты SDK
 
@@ -93,7 +104,11 @@ Content/
   Get Firearm, Get Team Id, Get Squad → INSAISquad. Команды «стрелять» нет — стреляют нативные
   поведения, наши управляют позицией/взглядом/стойкой. Update: Done только при Move Status == Idle.
 - Get Team Relationship(Actor, Team Id) → Neutral/Friendly/Enemy.
-- В поведениях у Print String нужен World Context = Me. Get Player Pawn в поведении недоступна.
+- В поведениях у Print String нужен World Context = Me. Get Player Pawn и Get Game Time in Seconds
+  в поведении недоступны (даже без Context Sensitive) — считать в мутаторе и звать через Director.
+- Из const-функций поведения можно SET-ить переменные другого объекта (мозга бота).
+- Копирование нод между вкладками: сначала клик по пустому месту (снять выделение), потом
+  клик/Ctrl+клик по нужным → Ctrl+C / Ctrl+V; иначе копируется лишнее.
   Поиск по полной фразе иногда пуст — искать по одному слову.
 - Контейнеры менять через `Get Tmp → Add → Set(Get Tmp)`.
 - Документация: `ARCHITECTURE.md` (API), `BOT_SKILL_CONFIG.md` (параметры нативного ИИ),
@@ -111,24 +126,29 @@ Content/
    ProneChanceClose 80, ProneChanceDistance 0.
 5. ✅ «Глаза»: AC_OgrAiBrain на каждом боте, фильтр «только враги».
 6. ✅ Общая память команды: последняя известная позиция врага (LKP) в мутаторе — проверено.
+7. ✅ BB_Search: после потери контакта боты пригнувшись крадутся к LKP, там выпрямляются и
+   уходят в ванильный патруль; стрельбы сквозь стены нет; новая LKP → новый поход.
+   Минусы: идут все боты; пачка LOST обновляет LKP_Time и может отправить бота повторно.
 
-## СЛЕДУЮЩИЙ ШАГ — поведение «Прочесать» (BB_Search)
+## СЛЕДУЮЩИЙ ШАГ — ограничить прочёсывание (токены поиска)
 
-Идея: после потери контакта бот пригнувшись идёт проверять LKP вместо «стрельбы сквозь стены».
-План (ещё не начат):
-1. AC_OgrAiBrain: переменная `SearchedLKPTime` (Float).
-2. `Content/AI/BB_Search` (наследник BotBehavior_Blueprint), Behavior Name `OgrAi_Search`, Priority **Alert**.
-3. Can Enter: Me → Get Component by Class(AC_OgrAiBrain) → Director → LKP_Time; вход если
-   LKP_Time > 0, (GameTime − LKP_Time) в [3; 30] с и Brain.SearchedLKPTime != LKP_Time.
-4. On Start: Set Desired Stance(Crouch) → Move to Location(Director.LKP_Location, Acceptance 150,
-   Project to Nav) → Brain.SearchedLKPTime = LKP_Time → Running.
-5. Update: Get Move Status == Idle → Done, иначе Running.
-6. Мутатор: добавить BB_Search в Valid Behaviors (как BB_Test). BB_Test после этого убрать из списка.
-7. Тест: показаться, спрятаться/сменить позицию → боты должны прийти на старое место.
+Проблема: на LKP идут все боты (и пачка LOST может отправить их повторно) — отряд целиком
+сбегается в одну точку. Хотим: 1–2 бота прочёсывают, остальные остаются (позже — прикрытие).
+План (ещё не начат, детали уточнить при старте):
+1. Мутатор: Config Variable `MaxSearchers` (Int, 2), переменные `SearchTokenLKPTime` (Float),
+   `SearchersCount` (Int).
+2. Pure-функция мутатора `HasSearchToken() → bool`: (SearchTokenLKPTime != LKP_Time) ИЛИ
+   (SearchersCount < MaxSearchers). Добавить её в AND в Can Enter BB_Search.
+3. Функция мутатора `TakeSearchToken()`: если SearchTokenLKPTime != LKP_Time → SearchersCount = 0,
+   SearchTokenLKPTime = LKP_Time; затем SearchersCount++. Вызывать в On Start BB_Search.
+4. ReportEnemy: сгладить пачки LOST — при bSensed=false не обновлять LKP_Time, если новая
+   LKP ближе ~3 м к старой (Vector Distance < 300).
+5. Тест: на одну потерю контакта — не больше MaxSearchers строк `SEARCH -> LKP`.
+(Позже, вместе с SquadDirector: выбирать ближайших к LKP, а не первых успевших.)
 
 ## Дальше (roadmap)
 
-1. BB_Search (см. выше).
+1. ✅ BB_Search. → Токены поиска (см. СЛЕДУЮЩИЙ ШАГ).
 1a. Граната / РПГ по LKP при потере контакта — задача
     https://git.ogrpfsense.ru/denisle/sandstorm-ai/-/work_items/1 (сначала разведка: Grenade/Throw/Fire/Launcher).
 2. **Пробная упаковка и тест на сервере** (рано!): загрузка мутатора в shipping-сборке,
