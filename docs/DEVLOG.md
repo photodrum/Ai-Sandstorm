@@ -95,7 +95,24 @@
 - Наблюдения: идут **все** боты, включая не видевших игрока (общая память); `LOST` приходит пачкой
   (каждый бот теряет игрока отдельно) и каждый раз обновляет LKP_Time → возможен повторный поход на то же место.
 
-Следующее: ограничить прочёсывание (токены поиска, 1–2 бота) и сгладить пачки LOST в ReportEnemy.
+- **Токены поиска ✅**: мутатор — Config Variable `MaxSearchers` (Int, 2), `SearchTokenLKPTime` (Float),
+  `SearchersCount` (Int); Pure `HasSearchToken()` = (SearchTokenLKPTime != LKP_Time) OR (SearchersCount < MaxSearchers);
+  `TakeSearchToken()`: новая LKP → SearchersCount=0, SearchTokenLKPTime=LKP_Time; затем SearchersCount+1.
+  BB_Search: HasSearchToken в AND Can Enter, TakeSearchToken в On Start после SET SearchedLKPTime.
+  Тест: на одну потерю контакта идут 1–2 бота; не нашли — уходят в патруль, остальные держат позиции.
+- **Баг: боты «видели» трупы** (убитые союзные боты игрока): одинаковые до мм LKP повторялись десятки раз.
+  Фикс в AC_OgrAiBrain: Branch = AND(Team Relationship == Enemy, As INSSoldier.Get Health > 0). Проверено.
+  У INSSoldier есть также Get Is Dying, Get Incapacitated, Get In Ragdoll, Get Time Of Death (Is Alive нет).
+- **LogAI Error** `Behavior BB_Search just switched but is finishing on the initial Update` — бот уже у LKP
+  (Move сразу Idle). Фикс: в Can Enter 5-е условие Distance(Get Controlled Pawn → Location, LKP_Location) > 300.
+  Ошибка исчезла.
+- Наблюдения из LogAI: нативный BotFirearmBehavior держит бота ~10 с после потери цели
+  (`Aborting BotFirearmBehavior since my target hasn't been seen for over 10 seconds`) — наш Alert
+  стартует только после этого. `FriendlyBotQuota=0` не применяется: спавнятся союзники (team 0).
+- Пачки LOST при движении игрока в поле зрения (точки в ~1 м друг от друга) каждый раз дают «новую LKP»
+  и сбрасывают токены → в поиск уходят следующие двое.
+
+Следующее: сглаживание LOST в ReportEnemy; найти параметр «10 с» в BotSkillConfig; FriendlyBotQuota.
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).

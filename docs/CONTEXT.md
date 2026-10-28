@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-10-28, версия v0.3 (BB_Search работает)
+**Последнее обновление:** 2026-10-28, версия v0.4 (BB_Search + токены поиска + фильтр трупов)
 
 ## Цель
 
@@ -64,6 +64,10 @@ Content/
 - Функция ReportEnemy(Enemy: Pawn, Location: Vector, bSensed: Bool) → SET LKP_Enemy, LKP_Location,
   LKP_Time (= Get Game Time in Seconds) → если !bSensed: Print `LOST target, LKP=...`.
 - Функция GetLKPAge() (Pure) → Age = Get Game Time in Seconds − LKP_Time.
+- Токены поиска: Config Variable `MaxSearchers` (Int, 2), `SearchTokenLKPTime` (Float), `SearchersCount` (Int).
+  HasSearchToken() (Pure → HasToken) = (SearchTokenLKPTime != LKP_Time) OR (SearchersCount < MaxSearchers).
+  TakeSearchToken(): Branch(SearchTokenLKPTime != LKP_Time) → True: SearchersCount=0, SearchTokenLKPTime=LKP_Time →
+  (True и False) SearchersCount = SearchersCount + 1.
   (Поведения не могут сами получить время игры — спрашивают у Director.)
 - Переменные: TmpBehaviors, DefaultSkillConfig (=DefaultBotSkillConfig), 12 Config Variables профиля
   (см. `docs/CONFIG.md`), LKP_Enemy, LKP_Location, LKP_Time.
@@ -73,16 +77,19 @@ Content/
 - Begin Play → Get Owner → Cast INSAISoldierController → SET MyController → Get AIPerception Component →
   Bind On Target Perception Info Updated.
 - Событие → Break ActorPerceptionUpdateInfo → Cast INSSoldier(Target) →
-  Get Team Relationship(Actor, MyController.Get Team Id) == Enemy → Print (только лог) `ENEMY ... by ...` →
+  Branch(AND(Get Team Relationship(Actor, MyController.Get Team Id) == Enemy; As INSSoldier.Get Health > 0)) →
+  Print (только лог) `ENEMY ... by ...` →
   Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed).
 - Переменные: MyController, Director (OgrAi, Instance Editable), SearchedLKPTime (Float — LKP_Time,
   которую этот бот уже взял в прочёсывание).
 
 **Поведение BB_Search** (Behavior Name `OgrAi_Search`, Priority Alert):
 - Can Enter: Me → Get Component by Class(AC_OgrAiBrain) → Is Valid → .Director → Is Valid →
-  AND(LKP_Time > 0; InRange(Director.GetLKPAge, 3, 30); Brain.SearchedLKPTime != LKP_Time) → Return.
+  AND(LKP_Time > 0; InRange(Director.GetLKPAge, 3, 30); Brain.SearchedLKPTime != LKP_Time;
+  Director.HasSearchToken; Distance(Me.Get Controlled Pawn.GetActorLocation, LKP_Location) > 300) → Return.
 - On Start: Set Desired Stance(Crouch) → Move to Location(Director.LKP_Location, 150, Project to Nav) →
-  SET Brain.SearchedLKPTime = Director.LKP_Time → Print `SEARCH -> LKP` (World Context = Me) → Running.
+  SET Brain.SearchedLKPTime = Director.LKP_Time → Director.TakeSearchToken → Print `SEARCH -> LKP`
+  (World Context = Me) → Running.
 - Update: Get Move Status == Idle → Done, иначе Running.
 
 ## Ключевые факты SDK
@@ -106,7 +113,15 @@ Content/
 - Get Team Relationship(Actor, Team Id) → Neutral/Friendly/Enemy.
 - В поведениях у Print String нужен World Context = Me. Get Player Pawn и Get Game Time in Seconds
   в поведении недоступны (даже без Context Sensitive) — считать в мутаторе и звать через Director.
-- Из const-функций поведения можно SET-ить переменные другого объекта (мозга бота).
+- Из const-функций поведения можно SET-ить переменные другого объекта (мозга бота) и вызывать его
+  не-Pure функции (TakeSearchToken мутатора).
+- Живой ли солдат: `INSSoldier.Get Health > 0` (Is Alive нет; есть Get Is Dying, Get Incapacitated,
+  Get In Ragdoll, Get Time Of Death). Трупы остаются врагами для AIPerception — фильтровать обязательно.
+- Пешка контроллера: от Me (Context Sensitive вкл.) раздел **Pawn** → Get Controlled Pawn.
+- LogAI Error `just switched but is finishing on the initial Update` — поведение вернуло Done на первом
+  Update; отсекать такие входы в Can Enter.
+- Нативный BotFirearmBehavior держит бота ~10 с после потери цели, наши Alert-поведения стартуют после.
+- Вставленная копия ноды `!=` может «переключиться» на bool и потерять провода — проверять тип пинов.
 - Копирование нод между вкладками: сначала клик по пустому месту (снять выделение), потом
   клик/Ctrl+клик по нужным → Ctrl+C / Ctrl+V; иначе копируется лишнее.
   Поиск по полной фразе иногда пуст — искать по одному слову.
@@ -129,26 +144,27 @@ Content/
 7. ✅ BB_Search: после потери контакта боты пригнувшись крадутся к LKP, там выпрямляются и
    уходят в ванильный патруль; стрельбы сквозь стены нет; новая LKP → новый поход.
    Минусы: идут все боты; пачка LOST обновляет LKP_Time и может отправить бота повторно.
+8. ✅ Токены поиска (MaxSearchers=2): на потерю контакта идут 1–2 бота, остальные держат позиции.
+   Фильтр трупов (Health > 0) в мозге. Проверка «бот уже у LKP» (> 3 м) — ошибка LogAI ушла.
 
-## СЛЕДУЮЩИЙ ШАГ — ограничить прочёсывание (токены поиска)
+## СЛЕДУЮЩИЙ ШАГ — сглаживание пачек LOST в ReportEnemy
 
-Проблема: на LKP идут все боты (и пачка LOST может отправить их повторно) — отряд целиком
-сбегается в одну точку. Хотим: 1–2 бота прочёсывают, остальные остаются (позже — прикрытие).
-План (ещё не начат, детали уточнить при старте):
-1. Мутатор: Config Variable `MaxSearchers` (Int, 2), переменные `SearchTokenLKPTime` (Float),
-   `SearchersCount` (Int).
-2. Pure-функция мутатора `HasSearchToken() → bool`: (SearchTokenLKPTime != LKP_Time) ИЛИ
-   (SearchersCount < MaxSearchers). Добавить её в AND в Can Enter BB_Search.
-3. Функция мутатора `TakeSearchToken()`: если SearchTokenLKPTime != LKP_Time → SearchersCount = 0,
-   SearchTokenLKPTime = LKP_Time; затем SearchersCount++. Вызывать в On Start BB_Search.
-4. ReportEnemy: сгладить пачки LOST — при bSensed=false не обновлять LKP_Time, если новая
-   LKP ближе ~3 м к старой (Vector Distance < 300).
-5. Тест: на одну потерю контакта — не больше MaxSearchers строк `SEARCH -> LKP`.
-(Позже, вместе с SquadDirector: выбирать ближайших к LKP, а не первых успевших.)
+Проблема: когда игрок движется в поле зрения, LOST приходит пачкой точек в ~1 м друг от друга;
+каждая — «новая LKP» (новый LKP_Time) → токены сбрасываются и в поиск уходят следующие двое.
+План (ещё не начат):
+1. ReportEnemy, ветка bSensed=false: если Vector Distance(новая Location, LKP_Location) < 300
+   и (GameTime − LKP_Time) < 5 → обновить только LKP_Location (позиция точнее), LKP_Time не трогать.
+   Иначе — как сейчас (SET всех трёх + Print LOST).
+   ⚠ Подумать: ветка bSensed=true тоже пишет LKP_Time — пока игрок виден, LKP_Time «свежий»,
+   это нормально (поиск всё равно ждёт ≥3 с после последнего события).
+2. Тест: на один эпизод «показался — спрятался» — одна строка LOST/одна LKP и ≤ 2 `SEARCH -> LKP`.
+Затем: найти в BotSkillConfig параметр «10 с без цели» (BotFirearmBehavior) и сократить;
+разобраться, почему FriendlyBotQuota=0 не работает (союзники team 0 всё равно спавнятся).
+(Позже, вместе с SquadDirector: в поиск — ближайших к LKP, а не первых успевших.)
 
 ## Дальше (roadmap)
 
-1. ✅ BB_Search. → Токены поиска (см. СЛЕДУЮЩИЙ ШАГ).
+1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов. → Сглаживание LOST (см. СЛЕДУЮЩИЙ ШАГ).
 1a. Граната / РПГ по LKP при потере контакта — задача
     https://git.ogrpfsense.ru/denisle/sandstorm-ai/-/work_items/1 (сначала разведка: Grenade/Throw/Fire/Launcher).
 2. **Пробная упаковка и тест на сервере** (рано!): загрузка мутатора в shipping-сборке,
