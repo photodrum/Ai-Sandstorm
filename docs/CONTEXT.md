@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-11-01, версия v0.5 (сглаживание пачек LOST в ReportEnemy)
+**Последнее обновление:** 2026-11-01, версия v0.6 (BB_Search с приоритетом Combat (low) — обход «10 с без цели»)
 
 ## Цель
 
@@ -84,17 +84,22 @@ Content/
 - Событие → Break ActorPerceptionUpdateInfo → Cast INSSoldier(Target) →
   Branch(AND(Get Team Relationship(Actor, MyController.Get Team Id) == Enemy; As INSSoldier.Get Health > 0)) →
   Print (только лог) `ENEMY ... by ...` →
-  Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed).
+  Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed) → Branch(Successfully Sensed) →
+  True: SET LastSensedTime = Get Game Time in Seconds.
+- Pure-функция GetSinceSensed() → Since = Get Game Time in Seconds − LastSensedTime (сколько секунд этот
+  бот сам не видел врага). В компоненте Get Game Time работает (не работает только в поведениях).
 - Переменные: MyController, Director (OgrAi, Instance Editable), SearchedLKPTime (Float — LKP_Time,
-  которую этот бот уже взял в прочёсывание).
+  которую этот бот уже взял в прочёсывание), LastSensedTime (Float).
 
-**Поведение BB_Search** (Behavior Name `OgrAi_Search`, Priority Alert):
+**Поведение BB_Search** (Behavior Name `OgrAi_Search`, Priority **Combat (low)** — чтобы прерывать
+«ждущую» стрельбу раньше нативных 10 с):
 - Can Enter: Me → Get Component by Class(AC_OgrAiBrain) → Is Valid → .Director → Is Valid →
   AND(LKP_Time > 0; InRange(Director.GetLKPAge, 3, 30); Brain.SearchedLKPTime != LKP_Time;
-  Director.HasSearchToken; Distance(Me.Get Controlled Pawn.GetActorLocation, LKP_Location) > 300) → Return.
+  Director.HasSearchToken; Distance(Me.Get Controlled Pawn.GetActorLocation, LKP_Location) > 300;
+  Brain.GetSinceSensed >= 3) → Return.
 - On Start: Set Desired Stance(Crouch) → Move to Location(Director.LKP_Location, 150, Project to Nav) →
-  SET Brain.SearchedLKPTime = Director.LKP_Time → Director.TakeSearchToken → Print `SEARCH -> LKP`
-  (World Context = Me) → Running.
+  SET Brain.SearchedLKPTime = Director.LKP_Time → Director.TakeSearchToken → Print
+  Append(`OgrAi: SEARCH -> LKP, since=`, Brain.GetSinceSensed) (World Context = Me) → Running.
 - Update: Get Move Status == Idle → Done, иначе Running.
 
 ## Ключевые факты SDK
@@ -161,24 +166,27 @@ Content/
 9. ✅ Сглаживание пачек LOST в ReportEnemy: LOST ближе 3 м к LKP и моложе 5 с только уточняет
    LKP_Location. Тест: на эпизод одна `LOST target`, остальные `LOST merged`, в поиск ровно 2 бота;
    новый поход — только после нового контакта.
+10. ✅ Обход «10 с без цели»: BB_Search с приоритетом Combat (low) + условие Brain.GetSinceSensed >= 3.
+    LogAI: вместо `target hasn't been seen for over 10 seconds` — `Aborting BotFirearmBehavior due to
+    ShouldInterruptExecution result` (наш поиск прерывает ожидание). Все SEARCH с since ≥ 3 (мин. 3.05),
+    бот, который видит врага, в поиск не уходит. Выдвижение заметно быстрее.
 
-## СЛЕДУЮЩИЙ ШАГ — обойти «10 с без цели» приоритетом BB_Search
+## СЛЕДУЮЩИЙ ШАГ — FriendlyBotQuota (союзные боты в тестах)
 
-Параметра нет (зашит в C++, см. «Ключевые факты»). План:
-1. Мозг: переменная `LastSensedTime` (Float) — при каждом sensed=true этого бота SET = время игры
-   (время брать у Director, например Pure-функция мутатора GetGameTime).
-2. BB_Search Can Enter: добавить условие «этот бот сам не видел врага ≥ 3 с»
-   (Director.GetGameTime − Brain.LastSensedTime ≥ 3).
-3. Поднять Behavior Priority BB_Search с Alert до Combat (low) и проверить в LogAI, что поиск
-   стартует раньше 10 с и не перебивает бой с видимым врагом.
-4. Затем разобраться, почему FriendlyBotQuota=0 не работает (союзники team 0 всё равно спавнятся).
+Союзники (team 0) спавнятся, несмотря на `FriendlyBotQuota=0` в Saved/Config/Windows/Game.ini. Из-за них в тесте
+несколько врагов, и единая LKP прыгает между далёкими точками (каждый LOST другой цели — новая эпоха).
+Проверить: файл и секцию, нет ли переопределения в сценарии / DefaultGame.ini; при необходимости —
+параметр URL запуска или свойство игрового режима, задаваемое из мутатора (только для тестов).
 Затем — 1a (гранаты / РПГ по LKP).
+Проблема на будущее: одна LKP на всю команду — при нескольких игроках нужна LKP на каждого врага
+(Map Pawn → точка/время) или хотя бы по каждому отряду (см. roadmap п.5, SquadDirector).
 (Позже, вместе с SquadDirector: в поиск — ближайших к LKP, а не первых успевших.)
 
 ## Дальше (roadmap)
 
-1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов, ✅ сглаживание LOST. → «10 с» + FriendlyBotQuota (см. СЛЕДУЮЩИЙ ШАГ).
-1a. (сразу после «10 с») Граната / РПГ по LKP перед прочёсыванием —
+1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов, ✅ сглаживание LOST, ✅ обход «10 с».
+   → FriendlyBotQuota (см. СЛЕДУЮЩИЙ ШАГ).
+1a. (сразу после FriendlyBotQuota) Граната / РПГ по LKP перед прочёсыванием —
     свой токен (один бросок на LKP), проверка «нет своих в ~8 м от точки»;
     Учесть все типы (выбор по ситуации и тому, что есть в снаряжении бота):
     - осколочная граната — по LKP за укрытием / в помещении;
@@ -196,7 +204,7 @@ Content/
    чтение Game.ini, `BlueprintNativizationMethod=Disabled`; Print String в shipping вырезается —
    нужен другой способ логирования (Config-флаг bDebugLog).
 3. Уборка: ветка On Player Spawned, BB_Test, шумные маячки (Print `LOST merged`, лог `ENEMY ... sensed=true`
-   в мозге — десятки строк в секунду); применить рекомендованные
+   в мозге — десятки строк в секунду; `since=` в SEARCH можно оставить до bDebugLog); применить рекомендованные
    значения профиля; обновить docs/CONFIG.md.
 4. Кулдаун входа в поведения после неудачи (часть ботов перезапускала BB_Test каждый такт).
 5. SquadDirector: роли в нативных INSAISquad — Suppress (нативное подавление) / Flank (BB_Flank),

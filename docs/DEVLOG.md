@@ -132,7 +132,20 @@
 - Решение: поднять приоритет BB_Search до Combat с защитой «этот бот не видел врага ≥ 3 с»
   (LastSensedTime в мозге).
 
-Следующее: LastSensedTime + приоритет Combat для BB_Search; FriendlyBotQuota; затем гранаты / РПГ по LKP.
+## 2026-11-01 — v0.6: обход «10 с без цели»
+
+- Мозг: переменная `LastSensedTime`; после ReportEnemy → Branch(Successfully Sensed) → SET = Get Game Time in Seconds.
+  Pure-функция `GetSinceSensed() → Since` (в компоненте время игры доступно).
+- BB_Search: 6-е условие Can Enter `Brain.GetSinceSensed >= 3`; Behavior Priority Alert → **Combat (low)**;
+  Print в On Start — `SEARCH -> LKP, since=<число>`.
+- Ошибка по пути: нода Get Since Sensed с Target = self в поведении → ERROR при компиляции; Target — от
+  Get Component by Class(AC_OgrAiBrain).
+- Тест: LogAI без `over 10 seconds`, вместо него `Aborting BotFirearmBehavior due to ShouldInterruptExecution result`.
+  since у всех SEARCH ≥ 3 (3.05; 29.6; 37.8; 45.3) — видящий бот в поиск не уходит. Выдвижение заметно быстрее.
+- Наблюдение: во втором запуске спавнились союзные боты (Player1/2/6/9), LKP прыгала между ними
+  (4 «настоящих» LOST target подряд) — нужна LKP на каждого врага (позже).
+
+Следующее: FriendlyBotQuota; затем гранаты / РПГ по LKP.
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
