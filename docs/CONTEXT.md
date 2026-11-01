@@ -130,6 +130,14 @@ Content/
   в поведении недоступны (даже без Context Sensitive) — считать в мутаторе и звать через Director.
 - Из const-функций поведения можно SET-ить переменные другого объекта (мозга бота) и вызывать его
   не-Pure функции (TakeSearchToken мутатора).
+- **Гранаты (разведка 1a):** команды «бросить» в BP нет ни у INSAISoldierController, ни у INSSoldier,
+  ни у BP_Grenade. У INSSoldier: переменные Get Ordered Inventory Grenades, Get Smoke Grenades, Get Inventory,
+  Get Current Weapon (→ Item Equipable), Get Pending Weapon, Get Ammo, Get Last Resupply Time; функции Equip Inventory
+  Item, Get Equipable in Slot, Get Equipable Items, Get Item Equipped Count (by Class). У BP_Grenade (Cast To BP_Grenade):
+  Can Throw, Can Release Throw, Is Primed for Throw, Get Throw Speed, Get Upwards Throw Speed, Is Overhand Throw,
+  Get Throw Mode, Is Cooking, Is in Cooking State; делегаты On Grenade Begin Throw / Begin Cook / Throw Mode Changed.
+  Классы гранат: BP_Grenade_M67, _F1 (осколочные), _ANM14 (зажиг.), _M18 (дым), _M84 (светошум.), _Molotov.
+  В SDK есть и варианты поведений `...IgnorePlayer` (ThrowBackGrenadeIgnorePla..., FleeGrenadeIgnore...).
 - Живой ли солдат: `INSSoldier.Get Health > 0` (Is Alive нет; есть Get Is Dying, Get Incapacitated,
   Get In Ragdoll, Get Time Of Death). Трупы остаются врагами для AIPerception — фильтровать обязательно.
 - Пешка контроллера: от Me (Context Sensitive вкл.) раздел **Pawn** → Get Controlled Pawn.
