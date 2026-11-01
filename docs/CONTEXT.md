@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-11-01, версия v0.6 (BB_Search с приоритетом Combat (low) — обход «10 с без цели»)
+**Последнее обновление:** 2026-11-01, версия v0.6 (BB_Search Combat (low), FriendlyBotQuota решён)
 
 ## Цель
 
@@ -38,8 +38,13 @@ OgrAi самостоятелен (Improved AI не нужен), но совме�
   конфиг `[/OgrAi/Mutators/OgrAi.OgrAi_C]`.
 - Тест: карта `Content/Maps/Farmhouse/Farmhouse`, ▼ Play → Mutators: OgrAi,
   Scenario Override: `Scenario_Farmhouse_Checkpoint_Security`, Net Mode: Play As Client.
-  Союзные боты отключены: `Insurgency\Saved\Config\Windows\Game.ini` →
-  `[/Script/Insurgency.INSCoopMode]` `FriendlyBotQuota=0`.
+  Союзные боты отключены: `Insurgency\Saved\Config\Windows\Game.ini` (файл **только для чтения**,
+  иначе редактор его очищает):
+  `[/Script/Insurgency.INSCoopMode]` `FriendlyBotQuota=0` + `[/Script/Insurgency.INSCheckpointGameMode]` `FriendlyBotQuota=0`.
+  Проверка: Output Log, фильтр `SpawnFakeClient` — только `team '1'`.
+  Выход из PIE — Esc / Shift+F1 → Stop. **Не** пользоваться пунктами меню игры «Выйти из матча /
+  из игры» — они роняют редактор.
+  PowerShell: `cd "путь"` (без `/d`).
   Лог: Output Log с фильтром или полный `Insurgency\Saved\Logs\Insurgency.log`.
 - ⚠️ Мутатор меняет ассеты игры в памяти — никогда не сохранять ассеты игры (не Save All).
 
@@ -171,13 +176,18 @@ Content/
     ShouldInterruptExecution result` (наш поиск прерывает ожидание). Все SEARCH с since ≥ 3 (мин. 3.05),
     бот, который видит врага, в поиск не уходит. Выдвижение заметно быстрее.
 
-## СЛЕДУЮЩИЙ ШАГ — FriendlyBotQuota (союзные боты в тестах)
+11. ✅ FriendlyBotQuota: `Saved/Config/Windows/Game.ini` был пустым (редактор перезаписал) — записаны
+    две секции, файл сделан «только для чтения». Союзников нет, врагов 3 (Observer/Commander/Marksman).
 
-Союзники (team 0) спавнятся, несмотря на `FriendlyBotQuota=0` в Saved/Config/Windows/Game.ini. Из-за них в тесте
-несколько врагов, и единая LKP прыгает между далёкими точками (каждый LOST другой цели — новая эпоха).
-Проверить: файл и секцию, нет ли переопределения в сценарии / DefaultGame.ini; при необходимости —
-параметр URL запуска или свойство игрового режима, задаваемое из мутатора (только для тестов).
-Затем — 1a (гранаты / РПГ по LKP).
+## СЛЕДУЮЩИЙ ШАГ — 1a: граната / РПГ по LKP, начинаем с разведки
+
+Задача https://git.ogrpfsense.ru/denisle/sandstorm-ai/-/work_items/1. Сначала разведка в SDK (без сборки логики):
+1. Что у бота в инвентаре: от Me / Get Controlled Pawn (INSSoldier) — поиск нод по словам Inventory,
+   Grenade, Explosive, Slot, Equip, Weapon, Item; есть ли «есть ли у бота граната» и тип.
+2. Как заставить бросить: от Me (INSAISoldierController) — Throw, Grenade, Fire, Launch, Explosive.
+   Если напрямую нельзя — как нативные ThrowGrenade / ThrowSmokeGrenade / ThrowGrenadeAtWindows / FireRocket выбирают
+   цель (можно ли подсунуть им LKP через Focus/Focal Point или память восприятия).
+3. Параметры гранат в DefaultBotSkillConfig (поиск Grenade, Throw, Rocket, Smoke).
 Проблема на будущее: одна LKP на всю команду — при нескольких игроках нужна LKP на каждого врага
 (Map Pawn → точка/время) или хотя бы по каждому отряду (см. roadmap п.5, SquadDirector).
 (Позже, вместе с SquadDirector: в поиск — ближайших к LKP, а не первых успевших.)
@@ -185,8 +195,8 @@ Content/
 ## Дальше (roadmap)
 
 1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов, ✅ сглаживание LOST, ✅ обход «10 с».
-   → FriendlyBotQuota (см. СЛЕДУЮЩИЙ ШАГ).
-1a. (сразу после FriendlyBotQuota) Граната / РПГ по LKP перед прочёсыванием —
+   ✅ FriendlyBotQuota.
+1a. (СЛЕДУЮЩИЙ ШАГ) Граната / РПГ по LKP перед прочёсыванием —
     свой токен (один бросок на LKP), проверка «нет своих в ~8 м от точки»;
     Учесть все типы (выбор по ситуации и тому, что есть в снаряжении бота):
     - осколочная граната — по LKP за укрытием / в помещении;

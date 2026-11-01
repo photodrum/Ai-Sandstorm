@@ -145,7 +145,12 @@
 - Наблюдение: во втором запуске спавнились союзные боты (Player1/2/6/9), LKP прыгала между ними
   (4 «настоящих» LOST target подряд) — нужна LKP на каждого врага (позже).
 
-Следующее: FriendlyBotQuota; затем гранаты / РПГ по LKP.
+- **FriendlyBotQuota ✅**: `Saved/Config/Windows/Game.ini` оказался пустым (редактор перезаписал файл).
+  Записаны `[/Script/Insurgency.INSCoopMode]` и `[/Script/Insurgency.INSCheckpointGameMode]` с `FriendlyBotQuota=0`,
+  файл — только для чтения. В логе только `SpawnFakeClient ... team '1'` (3 бота).
+- Выход из PIE через игровое меню («Выйти из матча/игры») роняет редактор; выходить Esc / Stop.
+
+Следующее: 1a — разведка гранат / РПГ (инвентарь бота, команда броска, параметры в BotSkillConfig).
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
