@@ -124,7 +124,15 @@
   строка `LOST target` теперь редкая; это нормально.
 - Наблюдение: лог `ENEMY ... sensed=true` в мозге — десятки строк в секунду, убрать при уборке.
 
-Следующее: найти параметр «10 с» в BotSkillConfig; FriendlyBotQuota; затем гранаты / РПГ по LKP.
+- Разведка «10 с без цели»: в DefaultBotSkillConfig параметра нет (поиск Seen/Lost/Forget/Time/Target/Abort/Memory).
+  Valid Behaviors — 28 нативных BotBehavior_* (+BB_Search), стрельба = HipFireWithPrimary / ADSWithPrimary /
+  ADSWithSecondary. Ассетов нет, в Pick Parent Class не показываются → наследовать нельзя, 10 с зашиты в C++.
+  Список поведений и найденные параметры (Memory Max Age 90, Frag Grenade Min Detonate Time 1.5,
+  Ambush Reaction Time Multiplier 1.4 и др.) — в BOT_SKILL_CONFIG.md.
+- Решение: поднять приоритет BB_Search до Combat с защитой «этот бот не видел врага ≥ 3 с»
+  (LastSensedTime в мозге).
+
+Следующее: LastSensedTime + приоритет Combat для BB_Search; FriendlyBotQuota; затем гранаты / РПГ по LKP.
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
