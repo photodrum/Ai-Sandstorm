@@ -129,6 +129,10 @@ Content/
 - LogAI Error `just switched but is finishing on the initial Update` — поведение вернуло Done на первом
   Update; отсекать такие входы в Can Enter.
 - Нативный BotFirearmBehavior держит бота ~10 с после потери цели, наши Alert-поведения стартуют после.
+  Это **зашито в C++**: в DefaultBotSkillConfig параметра нет, нативные BotBehavior_* (28 шт., список в
+  BOT_SKILL_CONFIG.md) не наследуются из BP. Обход — повышать приоритет своих поведений (Combat).
+- ⚠ После Play в DefaultBotSkillConfig в памяти лежит BB_Search (жёлтая стрелка) — ассет не сохранять,
+  при закрытии редактора — Don't Save.
 - Вставленная копия ноды `!=` может «переключиться» на bool и потерять провода — проверять тип пинов.
 - Копирование нод между вкладками: сначала клик по пустому месту (снять выделение), потом
   клик/Ctrl+клик по нужным → Ctrl+C / Ctrl+V; иначе копируется лишнее.
@@ -158,13 +162,16 @@ Content/
    LKP_Location. Тест: на эпизод одна `LOST target`, остальные `LOST merged`, в поиск ровно 2 бота;
    новый поход — только после нового контакта.
 
-## СЛЕДУЮЩИЙ ШАГ — «10 с без цели» и FriendlyBotQuota
+## СЛЕДУЮЩИЙ ШАГ — обойти «10 с без цели» приоритетом BB_Search
 
-1. Найти в DefaultBotSkillConfig параметр, из-за которого нативный BotFirearmBehavior держит бота
-   ~10 с после потери цели (`Aborting BotFirearmBehavior since my target hasn't been seen for over 10 seconds`),
-   и сократить (Config Variable + Set в Begin Play мутатора, как профиль восприятия). Сначала проверить
-   `docs/BOT_SKILL_CONFIG.md`, затем поиск в Details DefaultBotSkillConfig по словам Seen / Lost / Target / Time.
-2. Разобраться, почему FriendlyBotQuota=0 не работает (союзники team 0 всё равно спавнятся).
+Параметра нет (зашит в C++, см. «Ключевые факты»). План:
+1. Мозг: переменная `LastSensedTime` (Float) — при каждом sensed=true этого бота SET = время игры
+   (время брать у Director, например Pure-функция мутатора GetGameTime).
+2. BB_Search Can Enter: добавить условие «этот бот сам не видел врага ≥ 3 с»
+   (Director.GetGameTime − Brain.LastSensedTime ≥ 3).
+3. Поднять Behavior Priority BB_Search с Alert до Combat (low) и проверить в LogAI, что поиск
+   стартует раньше 10 с и не перебивает бой с видимым врагом.
+4. Затем разобраться, почему FriendlyBotQuota=0 не работает (союзники team 0 всё равно спавнятся).
 Затем — 1a (гранаты / РПГ по LKP).
 (Позже, вместе с SquadDirector: в поиск — ближайших к LKP, а не первых успевших.)
 

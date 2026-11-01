@@ -65,6 +65,36 @@ Weapon Category Configs — 8 категорий (Launcher, Marksman Rifle, Bolt
 Hear Aware Distance: Radial 2500, Gunshot 3500, Sprint Footstep 1350, Footsteps 900, Breach 1500,
 Door 1000, Rig Explosive 1000. Hear Distance Footsteps Sprinting 2500, Running 1750.
 
+## Прочее (найдено 2026-11-01)
+
+| Параметр | Значение | Раздел |
+|---|---|---|
+| Memory Max Age | 90 | Misc — сколько бот помнит цель |
+| Deffered Retreat Delay Time | 5 | Behavior |
+| Frag Grenade Min Detonate Time | 1.5 | Grenades |
+| Cover Cower Min Time | 2.5 | Cover |
+| Ambush Reaction Time Multiplier | 1.4 | Ambush |
+| Morale Restore Time | 10 | Morale |
+| Morale Lost on Head Shot / Death / Gruesome Death | 50 / 15 / 35 | Morale |
+| Time to Wait for Squadmates to Get in the Vehicle | 6 | Misc |
+| Fenced Target Hear Ability Modifier | 0.75 | Hearing |
+| Min Light Intensity to See Target / at Night / Fully Visible | 0.02 / 0.0185 / 0.1 | Vision |
+| Zero Time Multiplier Easy / Hard | 3.0 / 0.5 | Difficulty |
+
+Параметра «сколько секунд держать цель после потери» в конфиге **нет** (искали Seen, Lost, Forget,
+Time, Target, Abort, Memory).
+
+## Valid Behaviors (28, все нативные C++, кроме BB_Search)
+
+0 FollowSquadLeader, 1 MoveToObjective, 2 Wander, 3 ThrowBackGrenade, 4 HipFireWithPrimary,
+5 ADSWithPrimary, 6 ADSWithSecondary, 7 ThrowGrenade, 8 ThrowSmokeGrenade, 9 ThrowGrenadeAtWindows,
+10 FireRocket, 11 FlushTarget, 12 SuppressTarget, 13 FleeGrenade, 14 AttackMelee, 15 Retreat,
+16 RequestFireSupport, 17 Ambush, 18 Pursue, 19 Investigate, 20 Vehicle, 21 MoveToSeat,
+22 DestroyObjective, 23 UseSmartActor, 24 ClearObjective, 25 OutpostPrepare, 26 SeekAndDestroy,
+27 BB_Search (добавлен мутатором в памяти).
+Все с префиксом `BotBehavior_`. Ассетов у них нет (лупа никуда не ведёт), в Pick Parent Class их нет —
+**наследовать нельзя**, свойства не видны. «10 с» BotFirearmBehavior (стрельба = 4–6) зашиты в C++.
+
 ## Использование в OgrAi
 
 - По умолчанию мод эти значения **не трогает** (совместимость с Improved AI и настройками сервера).
