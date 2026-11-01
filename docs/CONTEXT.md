@@ -210,21 +210,26 @@ Content/
 
 - В логе сервера **0** строк `OgrAi:` — Print String в shipping вырезан. `LogAI` (Aborting BotFirearmBehavior и т.п.)
   на сервере тоже не пишется. Ошибок `LogScript` / `Accessed None` по OgrAi, BB_Search, AC_OgrAiBrain — **нет**.
-- В игре: после потери контакта боты шли/бежали к игроку, **пригнувшихся не видно**. Не ясно: это наш BB_Search
-  (стойку перебивает AIModifier/нативный ИИ), нативные Pursue/Investigate, или OgrAi на сервере не работает.
+- В игре: после потери контакта боты шли/бежали к игроку, **пригнувшихся нет — пользователь перепроверил, точно**.
+  В редакторе (PIE) те же боты крались пригнувшись. Гипотезы (проверять каналом DebugLog):
+  a) BB_Search на сервере не входит вообще (не добавился в Valid Behaviors / мозг не вешается / Director пуст),
+     а к игроку идут нативные Pursue / Investigate / SeekAndDestroy;
+  b) BB_Search работает, но стойку Crouch перебивает AIModifier или нативный ИИ;
+  c) мутатор на сервере не стартует (Begin Play / таймер ScanBots) несмотря на `initialize mutators ... OgrAi`.
 - Клиентские ошибки HumveeMal0 / MoreAmmo (`class mismatch`, `Missing Dependency EmergencyExit`) — старые моды, не наши.
 - В логе сервера после перезапуска `LogModio Error ... 4165374 does not exist → InstallationPending` — след
   удалённого Deadlier; проверить, что после следующего перезапуска пропал и мод не скачивается снова.
 
 ## СЛЕДУЮЩИЙ ШАГ — отладочный канал bDebugLog (видимый на сервере)
 
-План (начат только п.1 — в редакторе, возможно не сохранён):
+План (не начат: редактор закрыт без сохранения, `bDebugLog` не создан):
 1. Мутатор OgrAi: Config Variable `bDebugLog` (Bool, Instance Editable + Config Variable, Default true на время тестов).
 2. Функция мутатора `DebugLog(Msg: String)`: Branch(bDebugLog) → Print String(Msg) (для редактора) →
    Execute Console Command(`say ` + Msg) — сообщение в чат игры и в лог сервера (чат пишется в shipping).
    Сначала проверить в PIE, что `say` из Execute Console Command вообще выводится (если нет — искать другой путь:
    RCON-команды, Broadcast/Chat-функции GameMode/GameState в SDK, слова Chat/Message/Broadcast).
-3. Перевести маячки на Director.DebugLog: MUTATOR STARTED, LOST target, SEARCH -> LKP (+since, имя бота).
+3. Перевести маячки на Director.DebugLog: MUTATOR STARTED, `BB_Search added`, `brain added` (в ScanBots, с числом ботов),
+   LOST target, SEARCH -> LKP (+since, имя бота) — чтобы различить гипотезы a/b/c.
    Из поведения звать через Director (у поведения нет мира). Шумный `ENEMY ... sensed` в мозге — убрать.
 4. Новая версия 0.7 → выпуск по процедуре выше → тест на сервере: видно ли в чате SEARCH, и проверить стойку
    (Crouch) — если SEARCH есть, а боты не пригибаются, разбираться с AIModifier (его секция в серверном Game.ini,
