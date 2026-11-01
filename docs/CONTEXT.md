@@ -206,11 +206,30 @@ Content/
   держал открытый редактор SDK). На сервере остался AIModifier — тоже меняет ботов, возможен конфликт с профилем.
 - ⚠ Редактор SDK монтирует моды из `C:\Users\Public\mod.io` и держит их файлы — закрывать редактор перед игрой.
 
-## СЛЕДУЮЩИЙ ШАГ — проверка OgrAi в бою на сервере
+### Итог первого теста на сервере (2026-11-01, ValleyAzhir)
 
-Зайти, показаться врагам, спрятаться: идут ли 1–2 бота пригнувшись. Лог сервера: виден ли Print String в shipping
-(`OgrAi: MUTATOR STARTED`/`SEARCH`), нет ли `Accessed None` в AC_OgrAiBrain/BB_Search. Затем — чтение Config
-Variables из серверного Game.ini (`[/OgrAi/Mutators/OgrAi.OgrAi_C]`) и вопрос совместимости с AIModifier.
+- В логе сервера **0** строк `OgrAi:` — Print String в shipping вырезан. `LogAI` (Aborting BotFirearmBehavior и т.п.)
+  на сервере тоже не пишется. Ошибок `LogScript` / `Accessed None` по OgrAi, BB_Search, AC_OgrAiBrain — **нет**.
+- В игре: после потери контакта боты шли/бежали к игроку, **пригнувшихся не видно**. Не ясно: это наш BB_Search
+  (стойку перебивает AIModifier/нативный ИИ), нативные Pursue/Investigate, или OgrAi на сервере не работает.
+- Клиентские ошибки HumveeMal0 / MoreAmmo (`class mismatch`, `Missing Dependency EmergencyExit`) — старые моды, не наши.
+- В логе сервера после перезапуска `LogModio Error ... 4165374 does not exist → InstallationPending` — след
+  удалённого Deadlier; проверить, что после следующего перезапуска пропал и мод не скачивается снова.
+
+## СЛЕДУЮЩИЙ ШАГ — отладочный канал bDebugLog (видимый на сервере)
+
+План (начат только п.1 — в редакторе, возможно не сохранён):
+1. Мутатор OgrAi: Config Variable `bDebugLog` (Bool, Instance Editable + Config Variable, Default true на время тестов).
+2. Функция мутатора `DebugLog(Msg: String)`: Branch(bDebugLog) → Print String(Msg) (для редактора) →
+   Execute Console Command(`say ` + Msg) — сообщение в чат игры и в лог сервера (чат пишется в shipping).
+   Сначала проверить в PIE, что `say` из Execute Console Command вообще выводится (если нет — искать другой путь:
+   RCON-команды, Broadcast/Chat-функции GameMode/GameState в SDK, слова Chat/Message/Broadcast).
+3. Перевести маячки на Director.DebugLog: MUTATOR STARTED, LOST target, SEARCH -> LKP (+since, имя бота).
+   Из поведения звать через Director (у поведения нет мира). Шумный `ENEMY ... sensed` в мозге — убрать.
+4. Новая версия 0.7 → выпуск по процедуре выше → тест на сервере: видно ли в чате SEARCH, и проверить стойку
+   (Crouch) — если SEARCH есть, а боты не пригибаются, разбираться с AIModifier (его секция в серверном Game.ini,
+   строка 436) или повторять Set Desired Stance в Update.
+Затем: чтение Config Variables OgrAi из серверного Game.ini (`[/OgrAi/Mutators/OgrAi.OgrAi_C]`).
 
 ## (было) выбрать следующий пункт roadmap
 
