@@ -112,7 +112,19 @@
 - Пачки LOST при движении игрока в поле зрения (точки в ~1 м друг от друга) каждый раз дают «новую LKP»
   и сбрасывают токены → в поиск уходят следующие двое.
 
-Следующее: сглаживание LOST в ReportEnemy; найти параметр «10 с» в BotSkillConfig; FriendlyBotQuota.
+## 2026-11-01 — v0.5: сглаживание пачек LOST
+
+- **ReportEnemy ✅**: в начале функции новый Branch(AND(NOT bSensed; Distance(Location, LKP_Location) < 300;
+  GetLKPAge < 5)). True → SET LKP_Location = Location → Print `LOST merged` (временный); LKP_Time не меняется,
+  токены поиска не сбрасываются. False → прежняя цепочка (SET LKP_Enemy / LKP_Location / LKP_Time → Print LOST).
+- Тест на Farmhouse: за эпизод одна строка `LOST target`, остальные потери — `LOST merged`;
+  в поиск ушли ровно двое (17, 15). После повторного длительного контакта и новой потери — снова двое (13, 15),
+  это ожидаемо (sensed=true обновил LKP_Time → новая LKP).
+- Так как sensed=true непрерывно освежает LKP_Time, первый LOST после контакта обычно тоже сливается —
+  строка `LOST target` теперь редкая; это нормально.
+- Наблюдение: лог `ENEMY ... sensed=true` в мозге — десятки строк в секунду, убрать при уборке.
+
+Следующее: найти параметр «10 с» в BotSkillConfig; FriendlyBotQuota; затем гранаты / РПГ по LKP.
 
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).

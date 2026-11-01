@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-10-28, версия v0.4 (BB_Search + токены поиска + фильтр трупов)
+**Последнее обновление:** 2026-11-01, версия v0.5 (сглаживание пачек LOST в ReportEnemy)
 
 ## Цель
 
@@ -61,8 +61,13 @@ Content/
 - ScanBots: Get All Actors Of Class(AIController) → For Each → Cast INSAISoldierController →
   Get Component by Class(AC_OgrAiBrain) → Is Valid? → если нет: Add AC_OgrAiBrain (Target = контроллер)
   → SET Director = Self → далее старая ветка Cast INSSoldier → Custom Bot Skill Config (обычно None).
-- Функция ReportEnemy(Enemy: Pawn, Location: Vector, bSensed: Bool) → SET LKP_Enemy, LKP_Location,
-  LKP_Time (= Get Game Time in Seconds) → если !bSensed: Print `LOST target, LKP=...`.
+- Функция ReportEnemy(Enemy: Pawn, Location: Vector, bSensed: Bool) → Branch(AND(NOT bSensed;
+  Distance(Location, LKP_Location) < 300; GetLKPAge < 5)):
+  - True (слияние пачки LOST): SET LKP_Location = Location (LKP_Time не трогаем → токены не сбрасываются)
+    → Print `LOST merged` (временный, 2 с).
+  - False: SET LKP_Enemy, LKP_Location, LKP_Time (= Get Game Time in Seconds) → если !bSensed:
+    Print `LOST target, LKP=...`.
+  Следствие: пока игрок виден, sensed=true освежает LKP_Time, поэтому обычно сливается даже первый LOST.
 - Функция GetLKPAge() (Pure) → Age = Get Game Time in Seconds − LKP_Time.
 - Токены поиска: Config Variable `MaxSearchers` (Int, 2), `SearchTokenLKPTime` (Float), `SearchersCount` (Int).
   HasSearchToken() (Pure → HasToken) = (SearchTokenLKPTime != LKP_Time) OR (SearchersCount < MaxSearchers).
@@ -149,26 +154,24 @@ Content/
    Минусы: идут все боты; пачка LOST обновляет LKP_Time и может отправить бота повторно.
 8. ✅ Токены поиска (MaxSearchers=2): на потерю контакта идут 1–2 бота, остальные держат позиции.
    Фильтр трупов (Health > 0) в мозге. Проверка «бот уже у LKP» (> 3 м) — ошибка LogAI ушла.
+9. ✅ Сглаживание пачек LOST в ReportEnemy: LOST ближе 3 м к LKP и моложе 5 с только уточняет
+   LKP_Location. Тест: на эпизод одна `LOST target`, остальные `LOST merged`, в поиск ровно 2 бота;
+   новый поход — только после нового контакта.
 
-## СЛЕДУЮЩИЙ ШАГ — сглаживание пачек LOST в ReportEnemy
+## СЛЕДУЮЩИЙ ШАГ — «10 с без цели» и FriendlyBotQuota
 
-Проблема: когда игрок движется в поле зрения, LOST приходит пачкой точек в ~1 м друг от друга;
-каждая — «новая LKP» (новый LKP_Time) → токены сбрасываются и в поиск уходят следующие двое.
-План (ещё не начат):
-1. ReportEnemy, ветка bSensed=false: если Vector Distance(новая Location, LKP_Location) < 300
-   и (GameTime − LKP_Time) < 5 → обновить только LKP_Location (позиция точнее), LKP_Time не трогать.
-   Иначе — как сейчас (SET всех трёх + Print LOST).
-   ⚠ Подумать: ветка bSensed=true тоже пишет LKP_Time — пока игрок виден, LKP_Time «свежий»,
-   это нормально (поиск всё равно ждёт ≥3 с после последнего события).
-2. Тест: на один эпизод «показался — спрятался» — одна строка LOST/одна LKP и ≤ 2 `SEARCH -> LKP`.
-Затем: найти в BotSkillConfig параметр «10 с без цели» (BotFirearmBehavior) и сократить;
-разобраться, почему FriendlyBotQuota=0 не работает (союзники team 0 всё равно спавнятся).
+1. Найти в DefaultBotSkillConfig параметр, из-за которого нативный BotFirearmBehavior держит бота
+   ~10 с после потери цели (`Aborting BotFirearmBehavior since my target hasn't been seen for over 10 seconds`),
+   и сократить (Config Variable + Set в Begin Play мутатора, как профиль восприятия). Сначала проверить
+   `docs/BOT_SKILL_CONFIG.md`, затем поиск в Details DefaultBotSkillConfig по словам Seen / Lost / Target / Time.
+2. Разобраться, почему FriendlyBotQuota=0 не работает (союзники team 0 всё равно спавнятся).
+Затем — 1a (гранаты / РПГ по LKP).
 (Позже, вместе с SquadDirector: в поиск — ближайших к LKP, а не первых успевших.)
 
 ## Дальше (roadmap)
 
-1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов. → Сглаживание LOST (см. СЛЕДУЮЩИЙ ШАГ).
-1a. (сразу после сглаживания LOST) Граната / РПГ по LKP перед прочёсыванием —
+1. ✅ BB_Search, ✅ токены поиска, ✅ фильтр трупов, ✅ сглаживание LOST. → «10 с» + FriendlyBotQuota (см. СЛЕДУЮЩИЙ ШАГ).
+1a. (сразу после «10 с») Граната / РПГ по LKP перед прочёсыванием —
     свой токен (один бросок на LKP), проверка «нет своих в ~8 м от точки»;
     Учесть все типы (выбор по ситуации и тому, что есть в снаряжении бота):
     - осколочная граната — по LKP за укрытием / в помещении;
@@ -185,7 +188,8 @@ Content/
 2. **Пробная упаковка и тест на сервере** (рано!): загрузка мутатора в shipping-сборке,
    чтение Game.ini, `BlueprintNativizationMethod=Disabled`; Print String в shipping вырезается —
    нужен другой способ логирования (Config-флаг bDebugLog).
-3. Уборка: ветка On Player Spawned, BB_Test, шумные маячки; применить рекомендованные
+3. Уборка: ветка On Player Spawned, BB_Test, шумные маячки (Print `LOST merged`, лог `ENEMY ... sensed=true`
+   в мозге — десятки строк в секунду); применить рекомендованные
    значения профиля; обновить docs/CONFIG.md.
 4. Кулдаун входа в поведения после неудачи (часть ботов перезапускала BB_Test каждый такт).
 5. SquadDirector: роли в нативных INSAISquad — Suppress (нативное подавление) / Flank (BB_Flank),
