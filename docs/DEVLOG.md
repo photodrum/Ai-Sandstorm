@@ -160,5 +160,11 @@
 
 Следующее: выбрать этап — тест на сервере / LKP на каждого врага / SquadDirector.
 
+- **Первая упаковка ✅**: Package Mod → BUILD SUCCESSFUL, пак 870 КБ (5 ассетов), архив 111 КБ. mod.io: 6496427 (Hidden),
+  файл 0.6, metadata_blob записан. Сервер: Mods.txt + `-mutators=...,OgrAi` + `modio-keeper.py sync` (без sync сервер
+  мод не качает — первый перезапуск дал `Mutator path 'OgrAi' is invalid`). После sync и перезапуска мутатор найден и
+  инициализирован. MapCycle.txt (74 строки) — добавлен OgrAi, иначе после смены карты мутатор пропадал.
+- Убран Deadlier Fire supports & Enemies (4165374) полностью; у клиента он давал «Ошибка при загрузке ресурсов».
+
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).

@@ -187,7 +187,32 @@ Content/
 11. ✅ FriendlyBotQuota: `Saved/Config/Windows/Game.ini` был пустым (редактор перезаписал) — записаны
     две секции, файл сделан «только для чтения». Союзников нет, врагов 3 (Observer/Commander/Marksman).
 
-## СЛЕДУЮЩИЙ ШАГ — выбрать следующий пункт roadmap
+## Публикация и сервер (2026-11-01)
+
+- mod.io: **OgrAi Tactical AI**, ID **6496427**, Hidden, файл 0.6 (id 8410411, 4 платформы).
+  metadata_blob: `PluginName:OgrAi,ContentDirectory:../../../Insurgency/Mods/OgrAi/Content,GameVersion:1.22.0,BuildCL:0,CompatibleCL:0`.
+- Выпуск версии: редактор → mod.io → Package Mod → OgrAi → `tar.exe -a -c -f Saved\OgrAi-<ver>.zip -C Saved\StagedMods\OgrAi WindowsClient`
+  → загрузка на сайте (уникальное имя архива, 4 платформы, Active) → metadata_blob через PowerShell (как для V2) →
+  на сервере `python3 ~/modio-keeper.py sync` → `./inssserver restart`.
+- Сервер (Linux, LinuxGSM, ВМ inssserver): мод в `Config/Server/Mods.txt`; мутатор `OgrAi` — в конце `-mutators=`
+  (`~/lgsm/config-lgsm/inssserver/common.cfg`) **и** в `Options="Mutators=..."` каждой строки `Config/Server/MapCycle.txt`
+  (74 строки; без этого OgrAi выключается после смены карты). Сервер качает только моды, на которые подписан его
+  аккаунт mod.io — подписку делает `~/modio-keeper.py sync` (отписку не делает — вручную DELETE .../subscribe с
+  Content-Type: application/x-www-form-urlencoded).
+- Проверено: пак WindowsClient (870 КБ) монтируется на Linux-сервере, `/OgrAi/Mutators ... found 1 assets`,
+  `initialize mutators ... OgrAi` без `invalid`. Клиент (Required by Clients=false) мод всё равно скачивает — не мешает.
+- Удалён мод Deadlier Fire supports & Enemies (4165374, мутатор `2`): Mods.txt (закомментирован), -mutators, MapCycle,
+  подписка сервера, файлы на сервере и ПК. Он давал клиентам «Ошибка при загрузке ресурсов» (не обновлялся, пак
+  держал открытый редактор SDK). На сервере остался AIModifier — тоже меняет ботов, возможен конфликт с профилем.
+- ⚠ Редактор SDK монтирует моды из `C:\Users\Public\mod.io` и держит их файлы — закрывать редактор перед игрой.
+
+## СЛЕДУЮЩИЙ ШАГ — проверка OgrAi в бою на сервере
+
+Зайти, показаться врагам, спрятаться: идут ли 1–2 бота пригнувшись. Лог сервера: виден ли Print String в shipping
+(`OgrAi: MUTATOR STARTED`/`SEARCH`), нет ли `Accessed None` в AC_OgrAiBrain/BB_Search. Затем — чтение Config
+Variables из серверного Game.ini (`[/OgrAi/Mutators/OgrAi.OgrAi_C]`) и вопрос совместимости с AIModifier.
+
+## (было) выбрать следующий пункт roadmap
 
 1a (свой бросок гранаты/РПГ по LKP) **отменён** решением пользователя (2026-11-01): команды броска
 в BP нет, свой Spawn Actor снаряда выглядел бы неестественно (без замаха — монтаж не реплицируется
