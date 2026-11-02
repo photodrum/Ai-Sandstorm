@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-11-01, версия v0.6 (BB_Search Combat (low), FriendlyBotQuota решён)
+**Последнее обновление:** 2026-11-02, v0.6 + отладочный канал bDebugLog / DebugLog (say) — готов к выпуску 0.7
 
 ## Цель
 
@@ -60,18 +60,22 @@ Content/
 ```
 
 **Мутатор OgrAi:**
-- Begin Play → Print `MUTATOR STARTED` → Set Timer by Event (2 с, looping → ScanBots) →
+- Функция DebugLog(Msg: String): Branch(Config Variable `bDebugLog`, Bool, default true) → Print String(Msg) →
+  Execute Console Command(Append(`say `, Msg), Specific Player пуст) — чат игры + лог сервера.
+  Из поведения звать через Director (Brain → Director → Debug Log). В редакторе переменная bDebugLog и функция
+  DebugLog обе показываются как «Debug Log» — вызов функции = пункт с ƒ (у ноды пин Msg, Target is Ogr Ai).
+- Begin Play → Print `MUTATOR STARTED` → DebugLog(`OgrAi: MUTATOR STARTED`) → Set Timer by Event (2 с, looping → ScanBots) →
   `DefaultSkillConfig.ValidBehaviors += BB_Search` (Print `BB_Search added to DefaultBotSkillConfig`) → Branch(bPerceptionProfile) → 11 Set-нод профиля
   восприятия → Print `perception profile applied (11 params)`.
 - ScanBots: Get All Actors Of Class(AIController) → For Each → Cast INSAISoldierController →
   Get Component by Class(AC_OgrAiBrain) → Is Valid? → если нет: Add AC_OgrAiBrain (Target = контроллер)
-  → SET Director = Self → далее старая ветка Cast INSSoldier → Custom Bot Skill Config (обычно None).
+  → SET Director = Self → DebugLog(`OgrAi: brain -> ` + Get Display Name(As INSAISoldierController)) → далее старая ветка Cast INSSoldier → Custom Bot Skill Config (обычно None).
 - Функция ReportEnemy(Enemy: Pawn, Location: Vector, bSensed: Bool) → Branch(AND(NOT bSensed;
   Distance(Location, LKP_Location) < 300; GetLKPAge < 5)):
   - True (слияние пачки LOST): SET LKP_Location = Location (LKP_Time не трогаем → токены не сбрасываются)
     → Print `LOST merged` (временный, 2 с).
   - False: SET LKP_Enemy, LKP_Location, LKP_Time (= Get Game Time in Seconds) → если !bSensed:
-    Print `LOST target, LKP=...`.
+    DebugLog `LOST target, LKP=...`.
   Следствие: пока игрок виден, sensed=true освежает LKP_Time, поэтому обычно сливается даже первый LOST.
 - Функция GetLKPAge() (Pure) → Age = Get Game Time in Seconds − LKP_Time.
 - Токены поиска: Config Variable `MaxSearchers` (Int, 2), `SearchTokenLKPTime` (Float), `SearchersCount` (Int).
@@ -88,7 +92,6 @@ Content/
   Bind On Target Perception Info Updated.
 - Событие → Break ActorPerceptionUpdateInfo → Cast INSSoldier(Target) →
   Branch(AND(Get Team Relationship(Actor, MyController.Get Team Id) == Enemy; As INSSoldier.Get Health > 0)) →
-  Print (только лог) `ENEMY ... by ...` →
   Director.ReportEnemy(As INSSoldier, Stimulus Location, Successfully Sensed) → Branch(Successfully Sensed) →
   True: SET LastSensedTime = Get Game Time in Seconds.
 - Pure-функция GetSinceSensed() → Since = Get Game Time in Seconds − LastSensedTime (сколько секунд этот
@@ -103,8 +106,8 @@ Content/
   Director.HasSearchToken; Distance(Me.Get Controlled Pawn.GetActorLocation, LKP_Location) > 300;
   Brain.GetSinceSensed >= 3) → Return.
 - On Start: Set Desired Stance(Crouch) → Move to Location(Director.LKP_Location, 150, Project to Nav) →
-  SET Brain.SearchedLKPTime = Director.LKP_Time → Director.TakeSearchToken → Print
-  Append(`OgrAi: SEARCH -> LKP, since=`, Brain.GetSinceSensed) (World Context = Me) → Running.
+  SET Brain.SearchedLKPTime = Director.LKP_Time → Director.TakeSearchToken → Director.DebugLog(
+  Append(`OgrAi: SEARCH -> LKP, since=`, Brain.GetSinceSensed, ` bot=`, Get Display Name(Me))) → Running.
 - Update: Get Move Status == Idle → Done, иначе Running.
 
 ## Ключевые факты SDK
@@ -151,6 +154,11 @@ Content/
   BOT_SKILL_CONFIG.md) не наследуются из BP. Обход — повышать приоритет своих поведений (Combat).
 - ⚠ После Play в DefaultBotSkillConfig в памяти лежит BB_Search (жёлтая стрелка) — ассет не сохранять,
   при закрытии редактора — Don't Save.
+- **Отладка в shipping:** Print String вырезан, канал — DebugLog → `say`. Execute Console Command без Specific Player
+  на сервере работает (в PIE Play As Client проверено: `Cmd: say ...`, текст в чате клиента). Первое сообщение на
+  Begin Play даёт у клиента `no widget to forward to` (окно чата ещё не создано) — безвредно.
+- У белого (exec) выхода может быть только одна связь: если после вставки ноды цепочка «пропала», проверить,
+  куда реально ведёт выход. Фильтр Output Log ищет слова по отдельности (`brain ->` = `brain`); перед тестом — Clear Log.
 - Вставленная копия ноды `!=` может «переключиться» на bool и потерять провода — проверять тип пинов.
 - Копирование нод между вкладками: сначала клик по пустому месту (снять выделение), потом
   клик/Ctrl+клик по нужным → Ctrl+C / Ctrl+V; иначе копируется лишнее.
@@ -186,6 +194,8 @@ Content/
 
 11. ✅ FriendlyBotQuota: `Saved/Config/Windows/Game.ini` был пустым (редактор перезаписал) — записаны
     две секции, файл сделан «только для чтения». Союзников нет, врагов 3 (Observer/Commander/Marksman).
+12. ✅ Отладочный канал (2026-11-02): bDebugLog + DebugLog(Msg) → Print + `say`. Маячки MUTATOR STARTED, brain ->,
+    LOST target, SEARCH -> LKP (+bot=). Лог ENEMY в мозге удалён. PIE: вся цепочка в логе, сообщения в чате.
 
 ## Публикация и сервер (2026-11-01)
 
@@ -220,9 +230,13 @@ Content/
 - В логе сервера после перезапуска `LogModio Error ... 4165374 does not exist → InstallationPending` — след
   удалённого Deadlier; проверить, что после следующего перезапуска пропал и мод не скачивается снова.
 
-## СЛЕДУЮЩИЙ ШАГ — отладочный канал bDebugLog (видимый на сервере)
+## СЛЕДУЮЩИЙ ШАГ — версия 0.7 и тест на сервере
 
-План (не начат: редактор закрыт без сохранения, `bDebugLog` не создан):
+Пункты 1–3 сделаны (2026-11-02, см. «Что сделано» п.12). Осталось п.4: выпуск 0.7 по процедуре «Публикация и сервер»,
+на сервере проверить: в чате `brain ->` / `LOST target` / `SEARCH`, в логе сервера строки чата (поиск `say`, `Chat`, `OgrAi:`),
+стойка Crouch при SEARCH. Мелочь к уборке: где-то в цепочке профиля печатается `Server: 40.0` (лишний Print).
+
+Исходный план:
 1. Мутатор OgrAi: Config Variable `bDebugLog` (Bool, Instance Editable + Config Variable, Default true на время тестов).
 2. Функция мутатора `DebugLog(Msg: String)`: Branch(bDebugLog) → Print String(Msg) (для редактора) →
    Execute Console Command(`say ` + Msg) — сообщение в чат игры и в лог сервера (чат пишется в shipping).

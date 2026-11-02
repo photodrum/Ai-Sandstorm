@@ -171,5 +171,24 @@
 
 Следующее: bDebugLog + DebugLog, версия 0.7, повторный тест на сервере.
 
+## 2026-11-02 — отладочный канал bDebugLog / DebugLog
+
+- Мутатор: Config Variable `bDebugLog` (Bool, Instance Editable + Config, default true) и функция `DebugLog(Msg)`:
+  Branch(bDebugLog) → Print String(Msg) → Execute Console Command(`say ` + Msg), Specific Player пуст.
+- PIE (Play As Client = выделенный сервер в процессе): `say` выполняется на сервере без локального игрока
+  (`Cmd: say ...` в логе), сообщения видны в чате клиента. Самое первое (Begin Play) приходит до создания окна чата →
+  `LogUI: Error: Received chat message, no widget to forward to` — безвредно.
+- Маячки через DebugLog: `MUTATOR STARTED` (Begin Play), `brain -> <контроллер>` (ScanBots, после SET Director),
+  `LOST target, LKP=...` (ReportEnemy, ветка !bSensed), `SEARCH -> LKP, since=... bot=...` (BB_Search On Start,
+  вызов через Director). `LOST merged` остался обычным Print (в чат не идёт). Лог `ENEMY ... sensed` в мозге удалён.
+- Ошибка по пути: выход Debug Log в Begin Play остался подключён к Cast To INSSoldier из ScanBots вместо Set Timer
+  (у белого выхода только одна связь) → `Accessed None ... CallFunc_Array_Get_Item ... Cast To INSSoldier`, таймер
+  ScanBots не запускался, BB_Search не добавлялся. Исправлено.
+- Путаница: переменная `bDebugLog` и функция `DebugLog` в редакторе обе называются «Debug Log» — брать пункт с ƒ.
+- Тест PIE: в логе вся цепочка (старт → BB_Search added → профиль → 3 × brain → LOST target → SEARCH ×2 на эпизод,
+  since ≥ 3, bot=INSAISoldierController/1/2).
+
+Следующее: версия 0.7 → выпуск → тест на сервере (чат + LogChat в логе сервера, стойка Crouch).
+
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
