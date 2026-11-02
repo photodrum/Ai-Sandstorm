@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-11-02, v0.6 + отладочный канал bDebugLog / DebugLog (say) — готов к выпуску 0.7
+**Последнее обновление:** 2026-11-02, v0.7 выпущена и стоит на сервере; канал `say` на сервере НЕ работает → ищем функцию чата в SDK
 
 ## Цель
 
@@ -199,7 +199,15 @@ Content/
 
 ## Публикация и сервер (2026-11-01)
 
-- mod.io: **OgrAi Tactical AI**, ID **6496427**, Hidden, файл 0.6 (id 8410411, 4 платформы).
+- mod.io: **OgrAi Tactical AI**, ID **6496427**, Hidden, файл 0.7 (id 8415901, 4 платформы, blob записан; 0.6 — id 8410411).
+- metadata_blob (ПК, PowerShell, подставить версию в проверку `-eq '0.7'`):
+  ```
+  $uj = Get-ChildItem 'C:\Users\Public\mod.io', "$env:LOCALAPPDATA\mod.io" -Recurse -Filter user.json -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\254\\' } | Select-Object -First 1; $tok = (Get-Content $uj.FullName -Raw | ConvertFrom-Json).OAuth.token; $h = @{ Authorization = "Bearer $tok"; Accept = 'application/json' }; $f = (Invoke-RestMethod -UserAgent 'curl/8.14' -Headers $h "https://g-254.modapi.io/v1/games/254/mods/6496427/files?_sort=-id&_limit=1").data[0]; "== последний файл: id=$($f.id) версия=$($f.version) имя=$($f.filename)"; if ($f.version -eq '0.7') { $r = Invoke-RestMethod -Method Put -UserAgent 'curl/8.14' -Headers $h -ContentType 'application/x-www-form-urlencoded' -Body @{ metadata_blob = 'PluginName:OgrAi,ContentDirectory:../../../Insurgency/Mods/OgrAi/Content,GameVersion:1.22.0,BuildCL:0,CompatibleCL:0' } "https://g-254.modapi.io/v1/games/254/mods/6496427/files/$($f.id)"; "== blob записан: $($r.metadata_blob)" } else { "== СТОП: последний файл не 0.7, ничего не меняю" }
+  ```
+- Проверка свежести пака перед загрузкой: `Get-ChildItem Saved\StagedMods\OgrAi -Recurse -Filter *.pak | Select FullName, Length, LastWriteTime`
+  (0.7: 889 294 байт; архив ~111 КБ у 0.6 и 0.7 — норма). `tar` запускать из `E:\Games\SandstormEditor\Insurgency`.
+- Лог сервера: `~/serverfiles/Insurgency/Saved/Logs/Insurgency.log`; фильтр без шума голосового чата:
+  `grep -inE "OgrAi:|LogChat|LogScript|Accessed None" ... | grep -v Redstone | tail -40`.
   metadata_blob: `PluginName:OgrAi,ContentDirectory:../../../Insurgency/Mods/OgrAi/Content,GameVersion:1.22.0,BuildCL:0,CompatibleCL:0`.
 - Выпуск версии: редактор → mod.io → Package Mod → OgrAi → `tar.exe -a -c -f Saved\OgrAi-<ver>.zip -C Saved\StagedMods\OgrAi WindowsClient`
   → загрузка на сайте (уникальное имя архива, 4 платформы, Active) → metadata_blob через PowerShell (как для V2) →
@@ -230,7 +238,29 @@ Content/
 - В логе сервера после перезапуска `LogModio Error ... 4165374 does not exist → InstallationPending` — след
   удалённого Deadlier; проверить, что после следующего перезапуска пропал и мод не скачивается снова.
 
-## СЛЕДУЮЩИЙ ШАГ — версия 0.7 и тест на сервере
+### Итог второго теста на сервере (2026-11-02, v0.7)
+
+- Сервер скачал 0.7: `6496427 ... Updated` → MountPak successful → `/OgrAi/Mutators (found 1 assets)` → вторая
+  `initialize mutators ... OgrAi` без `invalid` (первая `invalid` — до монтирования, нормально). 4165374 (Deadlier) в логе больше нет.
+- **В чате игры ничего от OgrAi, в логе сервера 0 строк `OgrAi:`**, ошибок LogScript/Accessed None по OgrAi нет.
+  Боты после потери контакта снова бегали, не пригибаясь.
+- Вывод: `say` через Execute Console Command на выделенном shipping-сервере не работает (в PIE только
+  первое сообщение шло как `Cmd: say` самим сервером, остальные — через PlayerController игрока; на выделенном
+  сервере контроллер удалённый, консоль в shipping урезана) **ИЛИ** мутатор на сервере не стартует (гипотеза c).
+  Различить можно только рабочим каналом. Конфликт с AIModifier чат не объясняет (MUTATOR STARTED идёт до ботов) —
+  проверять его позже (временно убрать AIModifier из мутаторов на одну карту).
+
+## СЛЕДУЮЩИЙ ШАГ — канал вывода, работающий в shipping (функция чата SDK)
+
+На сервере есть моды JoinLeaveMessage и Motd_Z, которые пишут в чат → в SDK есть BP-функция чата.
+1. Мутатор OgrAi → функция DebugLog → правый клик, Context Sensitive выкл → искать `Chat`, `Broadcast`, `Message`,
+   `Notify` (особенно у INSGameMode / INSGameState / INSPlayerController: Get Game Mode → Cast To INSGameMode → ...Message).
+2. Заменить в DebugLog Execute Console Command(`say`) на найденную функцию; проверить в PIE (чат + лог).
+3. Версия 0.8 → выпуск → тест на сервере: есть ли MUTATOR STARTED / brain / SEARCH, стойка Crouch.
+   Если функции чата нет — альтернативы: как делают JoinLeaveMessage / Motd_Z (найти исходники/описание на mod.io),
+   видимый в игре признак (например, бот в поиске ложится Prone — заметно глазом).
+
+## (было) версия 0.7 и тест на сервере — выполнено 2026-11-02
 
 Пункты 1–3 сделаны (2026-11-02, см. «Что сделано» п.12). Осталось п.4: выпуск 0.7 по процедуре «Публикация и сервер»,
 на сервере проверить: в чате `brain ->` / `LOST target` / `SEARCH`, в логе сервера строки чата (поиск `say`, `Chat`, `OgrAi:`),
