@@ -282,7 +282,13 @@ Content/
 
 Варианты: (1) в DefaultBotSkillConfig на сервере нет BB_Search (AIModifier перезаписывает / наш += не
 срабатывает); (2) BB_Search есть, но Can Enter всегда false / не вызывается.
+Состояние на конец сессии 2026-11-03: в репозитории ассеты v0.9 (6671aa9). Шаги 1–2 ниже могли быть начаты
+в редакторе и не сохранены — в начале сессии проверить скриншотом Variables и участок ScanBots после
+DebugLog(`brain ->`). Valid Behaviors — Set: для маячка нужны LENGTH и CONTAINS из раздела Set.
+
 1. Переменные мутатора bDefReported, bCanEnterReported (Bool, false).
+   В ScanBots: DebugLog(brain) → Branch(NOT bDefReported); False → Cast To INSSoldier; True → DebugLog(маячок) →
+   SET bDefReported = true → Cast To INSSoldier.
 2. ScanBots (первый brain): Branch(NOT bDefReported) → DebugLog(`default behaviors=` + Length(DefaultSkillConfig.ValidBehaviors) +
    ` hasSearch=` + Contains(BB_Search)) → SET bDefReported.
 3. BB_Search Can Enter: Branch(NOT Director.bCanEnterReported) → Director.DebugLog(`CanEnter called`) → SET true.
