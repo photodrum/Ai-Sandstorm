@@ -225,5 +225,10 @@
 
 Следующее: v0.9 → сервер (added to / SEARCH / Crouch).
 
+- **v0.9 выпущена** (6671aa9, mod.io 8422448, пак 890 631 байт, на сервере проверен размер).
+- Сервер: brain и LOST есть, `added to` нет (Custom-конфигов нет), SEARCH нет.
+
+Следующее: маячки `default behaviors=N hasSearch=` и `CanEnter called` (v0.10).
+
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).

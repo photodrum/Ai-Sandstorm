@@ -271,7 +271,24 @@ Content/
 - Broadcast в лог сервера **не пишется** (LogChat там только про голосовой blocklist) — единственный канал — чат.
   LogScript-предупреждения — чужой Medicon. На сервере ботов много (≥ 7 brain сразу).
 
-## СЛЕДУЮЩИЙ ШАГ — v0.9 (BB_Search в Custom-конфиги) → сервер
+### Итог четвёртого теста на сервере (2026-11-03, v0.9, mod.io 8422448, пак 890 631 — проверено ls)
+
+- Ассеты 6671aa9. В чате `brain ->` на каждого бота, `LOST target`; **`added to` не было** (Custom Bot Skill Config у ботов
+  на сервере нет → используют DefaultBotSkillConfig), **`SEARCH` по-прежнему нет**.
+- Заметка: если blob записан после рестарта — проверять размер пака на сервере:
+  `ls -l ~/mod.io/common/254/mods/6496427/WindowsClient/Insurgency/Mods/OgrAi/Content/Paks/WindowsClient/`.
+
+## СЛЕДУЮЩИЙ ШАГ — маячки DefaultBotSkillConfig и Can Enter (v0.10)
+
+Варианты: (1) в DefaultBotSkillConfig на сервере нет BB_Search (AIModifier перезаписывает / наш += не
+срабатывает); (2) BB_Search есть, но Can Enter всегда false / не вызывается.
+1. Переменные мутатора bDefReported, bCanEnterReported (Bool, false).
+2. ScanBots (первый brain): Branch(NOT bDefReported) → DebugLog(`default behaviors=` + Length(DefaultSkillConfig.ValidBehaviors) +
+   ` hasSearch=` + Contains(BB_Search)) → SET bDefReported.
+3. BB_Search Can Enter: Branch(NOT Director.bCanEnterReported) → Director.DebugLog(`CanEnter called`) → SET true.
+4. v0.10 → сервер.
+
+## (было) v0.9 (BB_Search в Custom-конфиги) → сервер — выполнено
 
 Найдено (2026-11-03): вторая ветка ScanBots (Cast INSSoldier → INSPlayer State → Player Class → Custom Bot Skill Config →
 Is Valid → Tmp = Valid Behaviors → ADD → SET Valid Behaviors → Print `added to X | behaviors=N`) добавляла в Custom-конфиги
