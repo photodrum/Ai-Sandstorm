@@ -3,7 +3,7 @@
 > Вставь ссылку на этот файл (или его текст) в новый чат, чтобы продолжить с того же места.
 > Обновляется при каждом коммите. Подробная история — `docs/DEVLOG.md`.
 
-**Последнее обновление:** 2026-11-02, v0.7 выпущена и стоит на сервере; канал `say` на сервере НЕ работает → ищем функцию чата в SDK
+**Последнее обновление:** 2026-11-03, DebugLog переведён с `say` на INSGameMode.Broadcast Text Message All Players (PIE: текст в чате клиента) → выпуск 0.8 и тест на сервере
 
 ## Цель
 
@@ -61,7 +61,8 @@ Content/
 
 **Мутатор OgrAi:**
 - Функция DebugLog(Msg: String): Branch(Config Variable `bDebugLog`, Bool, default true) → Print String(Msg) →
-  Execute Console Command(Append(`say `, Msg), Specific Player пуст) — чат игры + лог сервера.
+  Get Game Mode → Cast To INSGameMode → **Broadcast Text Message All Players**(Target = As INSGame Mode,
+  Message = ToText(Msg), Type = None) — сообщение в чат всем игрокам (с 2026-11-03; раньше был `say`, на сервере не работал).
   Из поведения звать через Director (Brain → Director → Debug Log). В редакторе переменная bDebugLog и функция
   DebugLog обе показываются как «Debug Log» — вызов функции = пункт с ƒ (у ноды пин Msg, Target is Ogr Ai).
 - Begin Play → Print `MUTATOR STARTED` → DebugLog(`OgrAi: MUTATOR STARTED`) → Set Timer by Event (2 с, looping → ScanBots) →
@@ -154,9 +155,14 @@ Content/
   BOT_SKILL_CONFIG.md) не наследуются из BP. Обход — повышать приоритет своих поведений (Combat).
 - ⚠ После Play в DefaultBotSkillConfig в памяти лежит BB_Search (жёлтая стрелка) — ассет не сохранять,
   при закрытии редактора — Don't Save.
-- **Отладка в shipping:** Print String вырезан, канал — DebugLog → `say`. Execute Console Command без Specific Player
-  на сервере работает (в PIE Play As Client проверено: `Cmd: say ...`, текст в чате клиента). Первое сообщение на
-  Begin Play даёт у клиента `no widget to forward to` (окно чата ещё не создано) — безвредно.
+- **Отладка в shipping:** Print String вырезан (Development Only — в shipping нода пропускается, цепочка идёт дальше).
+  Канал — DebugLog → INSGameMode.**Broadcast Text Message All Players** (раздел Gamemode; «Shows a message to all
+  players in the chat panel»). Рядом: Broadcast Text Message Team, Broadcast Center Message All Players / Team (центр экрана).
+  В PIE сообщения приходят в чат клиента белым текстом без префикса `Server:`; `MUTATOR STARTED` (Begin Play) в чат не
+  попадает — игроков ещё нет. `say` через Execute Console Command на выделенном shipping-сервере НЕ работал (v0.7).
+  Найденные, но неподходящие: Send Chat Message (Target = Chat Box, клиентский UI-виджет). На будущее (радиопереговоры):
+  функция **Say** в разделе AI — проверить Target/пины.
+  Пишет ли Broadcast строку в лог сервера (LogChat?) — проверить на сервере.
 - У белого (exec) выхода может быть только одна связь: если после вставки ноды цепочка «пропала», проверить,
   куда реально ведёт выход. Фильтр Output Log ищет слова по отдельности (`brain ->` = `brain`); перед тестом — Clear Log.
 - Вставленная копия ноды `!=` может «переключиться» на bool и потерять провода — проверять тип пинов.
@@ -196,6 +202,10 @@ Content/
     две секции, файл сделан «только для чтения». Союзников нет, врагов 3 (Observer/Commander/Marksman).
 12. ✅ Отладочный канал (2026-11-02): bDebugLog + DebugLog(Msg) → Print + `say`. Маячки MUTATOR STARTED, brain ->,
     LOST target, SEARCH -> LKP (+bot=). Лог ENEMY в мозге удалён. PIE: вся цепочка в логе, сообщения в чате.
+13. ✅ (2026-11-03) `say` заменён на Broadcast Text Message All Players (INSGameMode). PIE: `OgrAi: brain -> ...` ×3
+    в чате клиента, в логе MUTATOR STARTED → BB_Search added → профиль → brain ×3 → LOST target → SEARCH. Ошибок нет.
+    Шум к уборке: `added to SuicideBomberSkillConfig | behaviors=14` каждые ~2 с (старая ветка ScanBots), лишний
+    Print `40.0`, двойной `MUTATOR STARTED`.
 
 ## Публикация и сервер (2026-11-01)
 
@@ -250,15 +260,22 @@ Content/
   Различить можно только рабочим каналом. Конфликт с AIModifier чат не объясняет (MUTATOR STARTED идёт до ботов) —
   проверять его позже (временно убрать AIModifier из мутаторов на одну карту).
 
-## СЛЕДУЮЩИЙ ШАГ — канал вывода, работающий в shipping (функция чата SDK)
+## СЛЕДУЮЩИЙ ШАГ — выпуск 0.8 и тест канала Broadcast на сервере
 
-На сервере есть моды JoinLeaveMessage и Motd_Z, которые пишут в чат → в SDK есть BP-функция чата.
-1. Мутатор OgrAi → функция DebugLog → правый клик, Context Sensitive выкл → искать `Chat`, `Broadcast`, `Message`,
-   `Notify` (особенно у INSGameMode / INSGameState / INSPlayerController: Get Game Mode → Cast To INSGameMode → ...Message).
-2. Заменить в DebugLog Execute Console Command(`say`) на найденную функцию; проверить в PIE (чат + лог).
-3. Версия 0.8 → выпуск → тест на сервере: есть ли MUTATOR STARTED / brain / SEARCH, стойка Crouch.
-   Если функции чата нет — альтернативы: как делают JoinLeaveMessage / Motd_Z (найти исходники/описание на mod.io),
-   видимый в игре признак (например, бот в поиске ложится Prone — заметно глазом).
+Функция чата найдена и проверена в PIE (п.13). Осталось:
+1. Пользователь пушит ассеты (мутатор OgrAi). Версия 0.8 → Package Mod → архив `Saved\OgrAi-0.8.zip` → mod.io
+   (4 платформы, Active) → metadata_blob (скрипт ниже, проверка `-eq '0.8'`) → сервер: `python3 ~/modio-keeper.py sync`
+   → `./inssserver restart`.
+2. Тест на сервере: в чате `OgrAi: brain ->` (значит мутатор стартует, гипотеза c отпадает), `LOST target`, `SEARCH`;
+   стойка Crouch у ищущих. В логе сервера искать `OgrAi:` / `LogChat` / `Broadcast`.
+3. Развилка: brain нет → мутатор/таймер не работают на сервере (c); brain есть, SEARCH нет → BB_Search не входит (a);
+   SEARCH есть, ботов в Crouch нет → AIModifier / нативный ИИ перебивает стойку (b) — убрать AIModifier на одну карту
+   или повторять Set Desired Stance в Update.
+
+## (было) канал вывода, работающий в shipping — выполнено 2026-11-03
+
+Найдено: INSGameMode.Broadcast Text Message All Players (поиск `Broadcast`, Context Sensitive выкл). `Chat` дал только
+голосовой чат / UI-виджеты (Send Chat Message — Target = Chat Box).
 
 ## (было) версия 0.7 и тест на сервере — выполнено 2026-11-02
 

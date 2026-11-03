@@ -197,5 +197,18 @@
 
 Следующее: найти в SDK BP-функцию чата (Chat / Broadcast / Message, как у JoinLeaveMessage / Motd_Z), заменить `say`, v0.8.
 
+## 2026-11-03 — канал чата через INSGameMode
+
+- Поиск в SDK (Context Sensitive выкл): `Chat` — только голосовой чат и UI (Send Chat Message: Target = Chat Box, клиент).
+  `Broadcast` — раздел Gamemode: Broadcast Text Message All Players / Team, Broadcast Center Message All Players / Team,
+  Broadcast Team Radio Event и др.; у Team Info — Broadcast Text Message. `Say` — одна функция в разделе AI (на будущее).
+- DebugLog: Print String → Get Game Mode → Cast To INSGameMode → Broadcast Text Message All Players(Message = ToText(Msg),
+  Type = None). Execute Console Command и Append(`say `) удалены.
+- PIE: в чате клиента белые строки `OgrAi: brain -> INSAISoldierController`, `…1`, `…2`; в логе вся цепочка, SEARCH ×3,
+  ошибок нет. MUTATOR STARTED в чат не приходит (Begin Play до входа игроков) — ожидаемо.
+- Замечен шум: `added to SuicideBomberSkillConfig | behaviors=14` каждые ~2 с.
+
+Следующее: v0.8 → выпуск → тест на сервере (brain / SEARCH в чате, стойка Crouch).
+
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).
