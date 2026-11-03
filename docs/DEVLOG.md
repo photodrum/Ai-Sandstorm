@@ -216,5 +216,14 @@
 
 Следующее: выяснить, какой конфиг навыков у ботов на сервере и вызывается ли Can Enter (маячки в чат, v0.9).
 
+- Разбор ScanBots: ветка Custom Bot Skill Config (через INSPlayer State → Player Class) добавляла в Custom-конфиги
+  **BB_Test** вместо BB_Search. В PIE это не было видно (Custom только у смертника). Вероятная причина
+  отсутствия SEARCH на сервере (там другие карты/классы).
+- Valid Behaviors — Set: ADD UNIQUE (массив) даёт TO ARRAY и ничего не меняет; нужен ADD из раздела Set.
+- Исправлено: ADD BB_Search + одноразовый DebugLog `added to X | behaviors=N` (флаг bCfgReported).
+  PIE: `added to SuicideBomberSkillConfig | behaviors=14` в чате один раз.
+
+Следующее: v0.9 → сервер (added to / SEARCH / Crouch).
+
 Ранее запланировано: остальные параметры профиля восприятия; затем проверка чтения из Game.ini на сервере;
 затем каст INSAISoldierController из мутатора (Received Enemy Seen → LKP).

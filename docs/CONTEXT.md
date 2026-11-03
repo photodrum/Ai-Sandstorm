@@ -271,13 +271,21 @@ Content/
 - Broadcast в лог сервера **не пишется** (LogChat там только про голосовой blocklist) — единственный канал — чат.
   LogScript-предупреждения — чужой Medicon. На сервере ботов много (≥ 7 brain сразу).
 
-## СЛЕДУЮЩИЙ ШАГ — почему BB_Search не входит на сервере
+## СЛЕДУЮЩИЙ ШАГ — v0.9 (BB_Search в Custom-конфиги) → сервер
 
-1. Разобрать старую ветку ScanBots (Cast INSSoldier → Custom Bot Skill Config, печать `added to SuicideBomberSkillConfig`).
-2. Маячки в чат: в brain — имя Custom Bot Skill Config бота и число Valid Behaviors; одноразовый
-   `CanEnter called` из BB_Search (флаг в Director). v0.9 → сервер.
-3. По результату: добавлять BB_Search в конфиг, который реально у бота / позже стартовать / проверить
-   на карте без AIModifier.
+Найдено (2026-11-03): вторая ветка ScanBots (Cast INSSoldier → INSPlayer State → Player Class → Custom Bot Skill Config →
+Is Valid → Tmp = Valid Behaviors → ADD → SET Valid Behaviors → Print `added to X | behaviors=N`) добавляла в Custom-конфиги
+старый **BB_Test**, а не BB_Search. **Valid Behaviors — множество (Set, значок `{ }`)**: дублей нет, нода ADD из раздела
+Set; ADD UNIQUE (массив) вставляет TO ARRAY и пишет во временную копию — нельзя.
+Исправлено: ADD (Set) **BB_Search**; после Print — Branch(NOT bCfgReported) → DebugLog(`added to X | behaviors=N`) →
+SET bCfgReported = true (новая переменная мутатора, Bool, false; одно сообщение в чат за карту).
+PIE: в чате одна белая `OgrAi: added to SuicideBomberSkillConfig | behaviors=14`.
+
+1. Выпуск 0.9 по процедуре (архив `OgrAi-0.9.zip`, blob с проверкой `-eq '0.9'`).
+2. Сервер: есть ли `added to <конфиг>` (значит у ботов Custom-конфиги) и появился ли `SEARCH`, Crouch.
+3. Если `added to` нет и SEARCH нет → AIModifier перезаписывает DefaultBotSkillConfig → маячок с числом
+   Valid Behaviors в DefaultSkillConfig (в ScanBots) / тест на карте без AIModifier / повторный ADD в таймере.
+4. Уборка: BB_Test можно удалять (ссылок больше нет — проверить Reference Viewer).
 
 ## (было) выпуск 0.8 и тест канала Broadcast на сервере — выполнено 2026-11-03
 
